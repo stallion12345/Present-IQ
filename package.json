@@ -1,0 +1,11 @@
+{
+  "name": "presentiq-backend",
+  "version": "1.0.0",
+  "description": "PresentIQ Backend — Groq Whisper + Supabase",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "groq-sdk": "^0.3.0",
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}
