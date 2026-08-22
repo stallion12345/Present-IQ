@@ -687,12 +687,27 @@ function buildPhraseIndex() {
   phraseIndex = {};
   phrases.forEach(ph => {
     if (!docSentences.length) return;
-    const results = docSentences.map(s => ({
-      sentence: s,
-      similarity: phraseSimilarity(ph.phrase, s)
-    })).filter(r => r.similarity > 0.2)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 3);
+
+    const phraseWords = ph.phrase.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+
+    const results = docSentences.map(s => {
+      const sLower = s.toLowerCase();
+      // Count how many phrase words appear in this sentence
+      const wordMatches = phraseWords.filter(pw => sLower.includes(pw));
+      // Also check exact phrase presence
+      const exactMatch = sLower.includes(ph.phrase.toLowerCase());
+      const score = exactMatch ? 1.0 : wordMatches.length / phraseWords.length;
+      return { sentence: s, similarity: score, exactMatch };
+    })
+    .filter(r => r.similarity > 0.3)
+    .sort((a, b) => {
+      // Exact matches always first
+      if (a.exactMatch && !b.exactMatch) return -1;
+      if (!a.exactMatch && b.exactMatch) return 1;
+      return b.similarity - a.similarity;
+    })
+    .slice(0, 3);
+
     phraseIndex[ph.phrase.toLowerCase()] = results;
   });
 }
@@ -730,21 +745,39 @@ function scanForPhrases(text) {
   const lower = text.toLowerCase();
 
   for (const ph of phrases) {
-    const similarity = phraseSimilarity(lower, ph.phrase);
-    if (similarity >= 0.6 && ph.phrase !== lastTriggeredPhrase) {
-      // Check phrase words appear in spoken text
-      const phraseWords = ph.phrase.split(/\s+/).filter(w => w.length > 2);
-      const spokenWords = lower.split(/\s+/);
-      const wordMatches = phraseWords.filter(pw => spokenWords.some(sw => sw.includes(pw.slice(0,4)) || pw.includes(sw.slice(0,4))));
+    // Skip if this phrase is on cooldown
+    if (phraseCooldowns[ph.phrase]) continue;
 
-      if (wordMatches.length >= Math.ceil(phraseWords.length * 0.6)) {
-        lastTriggeredPhrase = ph.phrase;
-        const refs = phraseIndex[ph.phrase] || [];
-        if (refs.length > 0) {
-          clearTimeout(phraseDebounce);
-          phraseDebounce = setTimeout(() => showReference(ph.phrase, refs[0], similarity), 0);
-          return;
-        }
+    // Check ALL phrase words appear in spoken text (strict word presence check)
+    const phraseWords = ph.phrase.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const spokenWords = lower.replace(/[^a-z\s]/g,'').split(/\s+/);
+
+    // Count how many phrase words appear in the spoken text
+    const wordMatches = phraseWords.filter(pw =>
+      spokenWords.some(sw =>
+        sw === pw ||
+        (sw.length > 3 && pw.length > 3 && (sw.startsWith(pw.slice(0,4)) || pw.startsWith(sw.slice(0,4))))
+      )
+    );
+
+    // Require at least 70% of phrase words to match
+    const matchRatio = wordMatches.length / phraseWords.length;
+    if (matchRatio >= 0.7) {
+      lastTriggeredPhrase = ph.phrase;
+      startPhraseCooldown(ph.phrase); // start 10s cooldown
+
+      const refs = phraseIndex[ph.phrase] || [];
+      if (refs.length > 0) {
+        // Find the BEST matching sentence from the index
+        // Re-score against what was actually spoken
+        const bestRef = refs.reduce((best, r) => {
+          const score = phraseSimilarity(ph.phrase, r.sentence);
+          return score > best.score ? { ...r, score } : best;
+        }, { ...refs[0], score: 0 });
+
+        clearTimeout(phraseDebounce);
+        phraseDebounce = setTimeout(() => showReference(ph.phrase, bestRef, matchRatio), 0);
+        return;
       }
     }
   }
@@ -805,11 +838,18 @@ function showReference(phrase, ref, similarity) {
   setTimeout(streamWord, 80);
 }
 
-// Reset phrase trigger after 3 seconds so same phrase can fire again
-let phraseResetTimer = null;
-function resetPhraseAfterDelay() {
-  clearTimeout(phraseResetTimer);
-  phraseResetTimer = setTimeout(() => { lastTriggeredPhrase = ''; }, 3000);
+// Per-phrase cooldown — each phrase has its own 10s cooldown
+const phraseCooldowns = {}; // phrase → timeout
+const PHRASE_COOLDOWN_MS = 10000; // 10 seconds
+
+function startPhraseCooldown(phrase) {
+  // Clear any existing cooldown for this phrase
+  if (phraseCooldowns[phrase]) clearTimeout(phraseCooldowns[phrase]);
+  phraseCooldowns[phrase] = setTimeout(() => {
+    delete phraseCooldowns[phrase];
+    // Allow this phrase to fire again
+    if (lastTriggeredPhrase === phrase) lastTriggeredPhrase = '';
+  }, PHRASE_COOLDOWN_MS);
 }
 
 // ═══════════════════════════════════════════
@@ -1109,12 +1149,12 @@ async function startSession() {
       finalTranscript += newFinal;
       updateTranscriptBar(finalTranscript.trim(), '');
       updateCoaching(newFinal.trim());
+      // Only scan final results — never interim — prevents repeated firing
       scanForPhrases(newFinal.trim());
-      resetPhraseAfterDelay();
     }
     if (interim) {
       updateTranscriptBar(finalTranscript.trim(), interim);
-      scanForPhrases(interim);
+      // No phrase scanning on interim
     }
   };
 
