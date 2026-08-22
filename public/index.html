@@ -447,6 +447,7 @@ let docSentences = [];
 let phraseIndex = {}; // phrase → [{sentence, similarity}]
 let lastTriggeredPhrase = '';
 let phraseDebounce = null;
+let interimPhraseDebounce = null;
 let activeAbortController = null;
 let activeStreamCard = null;
 
@@ -840,7 +841,7 @@ function showReference(phrase, ref, similarity) {
 
 // Per-phrase cooldown — each phrase has its own 10s cooldown
 const phraseCooldowns = {}; // phrase → timeout
-const PHRASE_COOLDOWN_MS = 10000; // 10 seconds
+const PHRASE_COOLDOWN_MS = 5000; // 5 seconds
 
 function startPhraseCooldown(phrase) {
   // Clear any existing cooldown for this phrase
@@ -1149,12 +1150,17 @@ async function startSession() {
       finalTranscript += newFinal;
       updateTranscriptBar(finalTranscript.trim(), '');
       updateCoaching(newFinal.trim());
-      // Only scan final results — never interim — prevents repeated firing
+      // Scan final — clears debounce and fires immediately
+      clearTimeout(interimPhraseDebounce);
       scanForPhrases(newFinal.trim());
     }
     if (interim) {
       updateTranscriptBar(finalTranscript.trim(), interim);
-      // No phrase scanning on interim
+      // Scan interim with 300ms debounce — fast but not spammy
+      clearTimeout(interimPhraseDebounce);
+      interimPhraseDebounce = setTimeout(() => {
+        scanForPhrases(interim);
+      }, 300);
     }
   };
 
