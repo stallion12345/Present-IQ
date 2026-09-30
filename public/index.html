@@ -198,8 +198,28 @@
   .session-stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;}
   .session-stat-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--text);line-height:1;margin-bottom:4px;}
   .session-stat-label{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;}
-  .session-insight{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:24px;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:left;}
+  .session-insight{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:left;}
   .session-insight strong{color:var(--text);}
+
+  /* Nemotron debrief section */
+  .nemotron-debrief{margin-bottom:20px;display:none;}
+  .nemotron-debrief.show{display:block;}
+  .nemotron-header{font-family:"DM Mono",monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .nemotron-header::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);animation:blink 1.5s ease-in-out infinite;}
+  .nemotron-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .nemotron-item{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;}
+  .nemotron-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+  .nemotron-item-label{font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+  .nemotron-item-score{font-family:"DM Mono",monospace;font-size:14px;font-weight:700;}
+  .nemotron-item-score.high{color:var(--green);}
+  .nemotron-item-score.mid{color:var(--yellow);}
+  .nemotron-item-score.low{color:var(--red);}
+  .nemotron-item-text{font-size:10px;color:var(--muted);line-height:1.5;}
+  .nemotron-fix{background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:6px;padding:10px;margin-top:8px;}
+  .nemotron-fix-label{font-family:"DM Mono",monospace;font-size:8px;color:var(--purple);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;}
+  .nemotron-fix-text{font-size:11px;color:var(--text);font-weight:600;line-height:1.4;}
+  .nemotron-processing{font-family:"DM Mono",monospace;font-size:9px;color:var(--purple);display:none;align-items:center;gap:6px;justify-content:center;margin-bottom:10px;}
+  .nemotron-processing.show{display:flex;}
   .session-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
   .session-btn{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;}
   .session-btn.primary{background:var(--orange);color:#fff;}
@@ -392,7 +412,7 @@
 
 <!-- SESSION OVERLAY -->
 <div class="session-overlay" id="sessionOverlay">
-  <div class="session-card">
+  <div class="session-card" style="max-height:90vh;overflow-y:auto;">
     <div class="session-title" id="overlayTitle">Rehearsal Complete</div>
     <div class="processing-msg" id="processingMsg">
       <span>⚡ Groq Whisper analysing your speech</span>
@@ -406,6 +426,51 @@
       <div class="session-stat"><div class="session-stat-val" id="overlayDuration">—</div><div class="session-stat-label">Duration</div></div>
     </div>
     <div class="session-insight" id="overlayInsight">—</div>
+
+    <!-- NEMOTRON AI DEBRIEF -->
+    <div class="nemotron-processing" id="nemotronProcessing">
+      <span>🧠 Nemotron AI analysing your delivery</span>
+      <span class="processing-dots"><span>.</span><span>.</span><span>.</span></span>
+    </div>
+    <div class="nemotron-debrief" id="nemotronDebrief">
+      <div class="nemotron-header">Nemotron AI Debrief</div>
+      <div class="nemotron-grid">
+        <div class="nemotron-item">
+          <div class="nemotron-item-header">
+            <span class="nemotron-item-label">Content Clarity</span>
+            <span class="nemotron-item-score" id="clarityScore">—</span>
+          </div>
+          <div class="nemotron-item-text" id="clarityFeedback">—</div>
+        </div>
+        <div class="nemotron-item">
+          <div class="nemotron-item-header">
+            <span class="nemotron-item-label">Filler Patterns</span>
+            <span class="nemotron-item-score" id="fillerScore">—</span>
+          </div>
+          <div class="nemotron-item-text" id="fillerFeedback">—</div>
+        </div>
+        <div class="nemotron-item">
+          <div class="nemotron-item-header">
+            <span class="nemotron-item-label">Pacing</span>
+            <span class="nemotron-item-score" id="pacingScore">—</span>
+          </div>
+          <div class="nemotron-item-text" id="pacingFeedback">—</div>
+        </div>
+        <div class="nemotron-item">
+          <div class="nemotron-item-header">
+            <span class="nemotron-item-label">Confidence</span>
+            <span class="nemotron-item-score" id="confidenceScore">—</span>
+          </div>
+          <div class="nemotron-item-text" id="confidenceFeedback">—</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;" id="improvementText">—</div>
+      <div class="nemotron-fix">
+        <div class="nemotron-fix-label">🎯 One Thing To Fix This Session</div>
+        <div class="nemotron-fix-text" id="oneThingToFix">—</div>
+      </div>
+    </div>
+
     <div class="session-actions">
       <button class="session-btn primary" onclick="closeOverlay()">↺ Rehearse Again</button>
       <button class="session-btn secondary" id="presentBtn" onclick="switchToPresent()" style="display:none">▶ Go Present</button>
@@ -1222,6 +1287,26 @@ async function stopSession() {
         updateTrainingBar(result.sessionNumber || 1);
         loadModelFromServer();
       }
+
+      // ── NEMOTRON DEBRIEF ────────────────────────────
+      // Analyse transcript with Nemotron on Nebius Token Factory
+      if (transcription && transcription.transcript && finalTranscript) {
+        document.getElementById('nemotronProcessing').classList.add('show');
+        const prevScore = rehearsalHistory.length > 0 ? rehearsalHistory[0].score : null;
+        const debriefResult = await analyseWithNemotron(
+          transcription.transcript || finalTranscript,
+          scriptText,
+          wpm,
+          fillerCount,
+          fillerWords,
+          score,
+          sessionDuration,
+          (rehearsalHistory.length + 1),
+          prevScore
+        );
+        document.getElementById('nemotronProcessing').classList.remove('show');
+        if (debriefResult) renderNemotronDebrief(debriefResult);
+      }
     }
   }
 }
@@ -1277,7 +1362,88 @@ function showSessionOverlay(duration, wpm, fillers, score) {
   document.getElementById('sessionOverlay').classList.add('show');
 }
 
-function closeOverlay() { document.getElementById('sessionOverlay').classList.remove('show'); }
+// ═══════════════════════════════════════════
+// NEMOTRON ANALYSIS
+// ═══════════════════════════════════════════
+async function analyseWithNemotron(transcript, script, wpm, fillerCount, fillerWords, score, duration, sessionNumber, previousScore) {
+  try {
+    const response = await fetch(API_BASE + '/.netlify/functions/analyse-transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript,
+        script,
+        wpm,
+        fillerCount,
+        fillerWords,
+        score,
+        duration,
+        sessionNumber,
+        previousScore
+      })
+    });
+    if (!response.ok) throw new Error('Nemotron analysis failed: ' + response.status);
+    const data = await response.json();
+    return data.analysis;
+  } catch(err) {
+    console.error('Nemotron error:', err);
+    return null;
+  }
+}
+
+function renderNemotronDebrief(analysis) {
+  if (!analysis) return;
+
+  function scoreClass(s) { return s >= 80 ? 'high' : s >= 60 ? 'mid' : 'low'; }
+
+  // Content clarity
+  if (analysis.contentClarity) {
+    document.getElementById('clarityScore').textContent = analysis.contentClarity.score + '/100';
+    document.getElementById('clarityScore').className = 'nemotron-item-score ' + scoreClass(analysis.contentClarity.score);
+    document.getElementById('clarityFeedback').textContent = analysis.contentClarity.feedback;
+  }
+
+  // Filler patterns
+  if (analysis.fillerPatterns) {
+    document.getElementById('fillerScore').textContent = analysis.fillerPatterns.score + '/100';
+    document.getElementById('fillerScore').className = 'nemotron-item-score ' + scoreClass(analysis.fillerPatterns.score);
+    document.getElementById('fillerFeedback').textContent = analysis.fillerPatterns.feedback;
+  }
+
+  // Pacing
+  if (analysis.pacingIntelligence) {
+    document.getElementById('pacingScore').textContent = analysis.pacingIntelligence.score + '/100';
+    document.getElementById('pacingScore').className = 'nemotron-item-score ' + scoreClass(analysis.pacingIntelligence.score);
+    document.getElementById('pacingFeedback').textContent = analysis.pacingIntelligence.feedback;
+  }
+
+  // Confidence language
+  if (analysis.confidenceLanguage) {
+    document.getElementById('confidenceScore').textContent = analysis.confidenceLanguage.score + '/100';
+    document.getElementById('confidenceScore').className = 'nemotron-item-score ' + scoreClass(analysis.confidenceLanguage.score);
+    document.getElementById('confidenceFeedback').textContent = analysis.confidenceLanguage.feedback;
+  }
+
+  // Improvement note
+  if (analysis.improvement) {
+    document.getElementById('improvementText').textContent = analysis.improvement;
+  }
+
+  // One thing to fix
+  if (analysis.oneThingToFix) {
+    document.getElementById('oneThingToFix').textContent = analysis.oneThingToFix;
+  }
+
+  // Show the debrief section
+  document.getElementById('nemotronDebrief').classList.add('show');
+}
+
+function closeOverlay() {
+  document.getElementById('sessionOverlay').classList.remove('show');
+  // Reset Nemotron debrief for next session
+  document.getElementById('nemotronDebrief').classList.remove('show');
+  document.getElementById('nemotronProcessing').classList.remove('show');
+}
 function switchToPresent() { closeOverlay(); switchMode('present'); }
 </script>
 </body>
