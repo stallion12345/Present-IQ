@@ -43,7 +43,7 @@ exports.handler = async (event, context) => {
       .select('*')
       .eq('user_id', userId)
       .eq('script_hash', scriptHash)
-      .single();
+      .maybeSingle();
 
     // Load rehearsal history
     const { data: sessions, error: sessionsError } = await supabase
@@ -53,6 +53,9 @@ exports.handler = async (event, context) => {
       .eq('script_hash', scriptHash)
       .order('created_at', { ascending: false })
       .limit(10);
+
+    if (modelError) throw modelError;
+    if (sessionsError) throw sessionsError;
 
     return {
       statusCode: 200,

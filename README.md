@@ -26,17 +26,31 @@ Netlify → Site configuration → Environment variables → Add:
 GROQ_API_KEY     = your key from console.groq.com
 SUPABASE_URL     = your Supabase project URL
 SUPABASE_KEY     = your Supabase anon public key
+NEBIUS_API_KEY   = your key from tokenfactory.nebius.com
 
 Save → Trigger redeploy
 
 ---
 
+## Local Development
+Put the four variables above in a root `.env` file (do not commit it), then run:
+
+```cmd
+npm install
+npx netlify-cli dev --dir public
+```
+
+Open the local URL printed by Netlify CLI. Netlify Dev loads environment variables from `.env`.
+For Nebius, the variable name is `NEBIUS_API_KEY`. If you rotate the key, replace its value in the root `.env` file and restart Netlify Dev; do not commit or share the key.
+
+---
+
 ## Step 4 — Test
-1. Open your Netlify URL
-2. Setup → paste script → Load Script
-3. Add keywords → upload reference doc
-4. Rehearse 3 times
-5. Switch to Present mode — teleprompter follows your timing
+1. Open the local or deployed app and paste a script in Setup.
+2. Set the target duration and run Script Doctor. Its speaking outline is separate; the original script remains unchanged.
+3. Rehearse and adjust the Slow/Medium/Fast auto-scroll slider. Pause or resume scrolling during rehearsal.
+4. Check the live elapsed/remaining time against the target.
+5. Rehearse at least once, then switch to Present mode for a three-point Nemotron briefing. Present mode continues to use trained sentence timing.
 
 ---
 
@@ -49,7 +63,9 @@ presentiq-backend/
 ├── netlify/functions/
 │   ├── transcribe.js         ← Groq Whisper
 │   ├── save-rehearsal.js     ← Save + build model
-│   └── load-model.js         ← Load trained model
+│   ├── load-model.js         ← Load trained model
+│   ├── analyse-transcript.js ← Rehearsal debrief
+│   └── script-coach.js       ← Script Doctor + presentation briefing
 └── public/
     └── index.html            ← Full frontend
 

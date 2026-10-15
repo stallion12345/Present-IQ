@@ -2,6 +2,8 @@
 // Sends rehearsal transcript to Nemotron on Nebius Token Factory
 // Returns personalised AI debrief with specific feedback
 
+const NEBIUS_MODEL = 'nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B';
+
 exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -19,7 +21,7 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  const NEBIUS_API_KEY = process.env.NEBIUS_API_KEY;
+  const NEBIUS_API_KEY = (process.env.NEBIUS_API_KEY || '').trim();
   if (!NEBIUS_API_KEY) {
     return {
       statusCode: 500,
@@ -99,14 +101,14 @@ Analyse this rehearsal and provide feedback in EXACTLY this JSON format. No text
 }`;
 
     // Call Nemotron on Nebius Token Factory
-    const response = await fetch('https://api.studio.nebius.ai/v1/chat/completions', {
+    const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${NEBIUS_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'nvidia/Llama-3_1-Nemotron-Ultra-253B-v1',
+        model: NEBIUS_MODEL,
         messages: [
           {
             role: 'system',
@@ -167,7 +169,7 @@ Analyse this rehearsal and provide feedback in EXACTLY this JSON format. No text
       },
       body: JSON.stringify({
         analysis,
-        model: 'nvidia/Llama-3_1-Nemotron-Ultra-253B-v1',
+        model: NEBIUS_MODEL,
         tokensUsed: data.usage?.total_tokens || 0
       })
     };

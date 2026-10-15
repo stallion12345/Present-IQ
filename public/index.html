@@ -111,6 +111,28 @@
   .font-ctrl{display:flex;align-items:center;gap:6px;}
   .font-ctrl-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);}
   .font-slider{width:70px;accent-color:var(--blue);cursor:pointer;}
+  .rehearse-controls{display:flex;align-items:center;gap:8px;}
+  .scroll-speed-control{display:flex;align-items:center;gap:5px;}
+  .scroll-speed-label,.scroll-speed-value{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);}
+  .scroll-speed-value{color:var(--orange);min-width:34px;}
+  .scroll-speed-slider{width:82px;accent-color:var(--orange);cursor:pointer;}
+  .scroll-toggle{font-family:'DM Mono',monospace;font-size:9px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;}
+  .scroll-toggle:disabled{opacity:0.55;cursor:default;}
+  .target-time-indicator{font-family:'DM Mono',monospace;font-size:9px;color:var(--cyan);white-space:nowrap;}
+  .target-time-control{display:flex;align-items:center;gap:8px;}
+  .target-time-input{width:72px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text);}
+  .script-doctor{margin-top:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;}
+  .script-doctor-status,.script-doctor-section{font-size:10px;color:var(--muted);line-height:1.6;}
+  .script-doctor-status{margin-top:8px;}
+  .script-doctor-section{margin-top:10px;}
+  .script-doctor-section strong{display:block;color:var(--purple);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;}
+  .script-doctor-section ul{padding-left:17px;margin:0;}
+  .script-doctor-section li{margin:3px 0;}
+  .presentation-brief{position:relative;z-index:1;margin:12px 24px 4px;padding:12px 16px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:8px;}
+  .presentation-brief-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:6px;}
+  .presentation-brief-status,.presentation-brief-list{font-size:11px;color:var(--text);line-height:1.6;}
+  .presentation-brief-list{padding-left:18px;margin:0;}
+  .presentation-brief-list li{margin:3px 0;}
   .nudge-btns{display:flex;gap:4px;}
   .nudge-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;display:none;transition:all 0.15s;}
   .nudge-btn:active{background:var(--blue-glow);border-color:var(--blue);}
@@ -215,6 +237,7 @@
   .nemotron-item-score.mid{color:var(--yellow);}
   .nemotron-item-score.low{color:var(--red);}
   .nemotron-item-text{font-size:10px;color:var(--muted);line-height:1.5;}
+  .nemotron-status{font-size:10px;color:var(--muted);line-height:1.5;}
   .nemotron-fix{background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:6px;padding:10px;margin-top:8px;}
   .nemotron-fix-label{font-family:"DM Mono",monospace;font-size:8px;color:var(--purple);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;}
   .nemotron-fix-text{font-size:11px;color:var(--text);font-weight:600;line-height:1.4;}
@@ -239,6 +262,11 @@
     .setup-panel.open,.ref-panel.open{display:flex;}
     .mob-tab-bar{display:flex;}
     .font-ctrl,.nudge-btns{display:none;}
+    .tp-bar>div:first-child{flex-wrap:wrap;}
+    .rehearse-controls{gap:4px;}
+    .scroll-speed-slider{width:54px;}
+    .scroll-toggle{font-size:8px;padding:4px 6px;}
+    .presentation-brief{margin:8px 12px 4px;padding:10px;}
     .nudge-btns.mobile-visible{display:flex;}
   }
   ::-webkit-scrollbar{width:4px;}
@@ -294,6 +322,32 @@
             <button class="hbtn hbtn-ghost" style="flex:1;font-size:10px;" onclick="loadScript()">Load Script</button>
             <button class="hbtn hbtn-ghost" style="font-size:10px;" onclick="clearScript()">Clear</button>
           </div>
+          <div style="margin-top:10px;">
+            <div class="s-label">Presentation Target</div>
+            <div class="target-time-control">
+              <input class="target-time-input" type="number" id="targetMinutes" min="1" max="120" value="5" aria-label="Presentation target in minutes" onchange="setTargetMinutes(this.value)">
+              <span style="font-size:10px;color:var(--muted);">minutes</span>
+            </div>
+          </div>
+          <button class="hbtn hbtn-ghost" id="scriptDoctorBtn" style="width:100%;font-size:10px;margin-top:10px;" onclick="runScriptDoctor()" disabled>🧠 Review Script with Nemotron</button>
+          <button class="hbtn hbtn-ghost" id="cuePhraseBtn" style="width:100%;font-size:10px;margin-top:8px;" onclick="generateCuePhrasesForScript()" disabled>✨ Auto-generate cue phrases</button>
+          <div class="script-doctor" id="scriptDoctor" hidden>
+            <div class="s-label">Nemotron Script Doctor</div>
+            <div class="script-doctor-status" id="scriptDoctorStatus" role="status"></div>
+            <div id="scriptDoctorResults" hidden>
+              <div class="script-doctor-section" id="doctorLongSentences"><strong>Sentences to simplify</strong><ul></ul></div>
+              <div class="script-doctor-section" id="doctorPronunciation"><strong>Pronunciation challenges</strong><ul></ul></div>
+              <div class="script-doctor-section" id="doctorArguments"><strong>Arguments to strengthen</strong><ul></ul></div>
+              <div class="script-doctor-section" id="doctorAlternatives"><strong>Simpler alternatives</strong><ul></ul></div>
+              <div class="script-doctor-section" id="doctorOutline"><strong>Speaking outline</strong><ul></ul></div>
+              <div class="script-doctor-section" id="doctorEstimate"></div>
+            </div>
+          </div>
+          <div class="script-doctor" id="cuePhrasePanel" hidden>
+            <div class="s-label">Cue Phrases</div>
+            <div class="script-doctor-status" id="cuePhraseStatus" role="status"></div>
+            <div class="kw-tags" id="cuePhraseList" style="margin-top:8px;"></div>
+          </div>
         </div>
 
         <div>
@@ -343,6 +397,15 @@
             <input type="range" class="font-slider" min="16" max="44" value="24" oninput="setFontSize(this.value)" id="fontSlider">
             <span class="font-ctrl-label" id="fontLabel">24px</span>
           </div>
+          <div class="rehearse-controls" id="rehearseControls">
+            <div class="scroll-speed-control">
+              <span class="scroll-speed-label">Scroll</span>
+              <input type="range" class="scroll-speed-slider" id="scrollSpeed" min="1" max="3" step="1" value="2" oninput="setScrollSpeed(this.value)" aria-label="Rehearse auto-scroll speed" title="Choose slow, medium, or fast auto-scroll speed">
+              <span class="scroll-speed-value" id="scrollSpeedLabel">Medium</span>
+            </div>
+            <button class="scroll-toggle" id="scrollSuggestionBtn" type="button" onclick="suggestSmartScrollSpeed()" title="Get an AI recommendation for your next scroll speed">AI pace</button>
+            <button class="scroll-toggle" id="scrollToggle" type="button" onclick="toggleAutoScroll()" disabled>Auto-scroll starts with rehearsal</button>
+          </div>
           <div class="nudge-btns" id="nudgeBtns">
             <button class="nudge-btn" id="nudgeBack" onclick="nudge(-1)">← Back</button>
             <button class="nudge-btn" id="nudgeFwd" onclick="nudge(1)">Fwd →</button>
@@ -356,6 +419,11 @@
         <div class="present-progress" id="presentProgress" style="display:none">
           <div class="present-progress-fill" id="presentProgressFill"></div>
         </div>
+        <section class="presentation-brief" id="presentationBrief" hidden aria-live="polite">
+          <div class="presentation-brief-title">Nemotron Presentation Brief</div>
+          <div class="presentation-brief-status" id="presentationBriefStatus" role="status"></div>
+          <ol class="presentation-brief-list" id="presentationBriefList" hidden></ol>
+        </section>
         <div id="scriptDisplay">
           <div class="tp-empty">
             <div class="tp-empty-icon">📝</div>
@@ -379,6 +447,8 @@
         <div class="coach-item"><span class="coach-val neutral" id="fillerVal">0</span><span class="coach-lbl">Fillers</span></div>
         <div class="coach-div"></div>
         <div class="coach-item"><span class="coach-val neutral" id="scoreVal">—</span><span class="coach-lbl">Score</span></div>
+        <div class="coach-div"></div>
+        <div class="coach-item"><span class="target-time-indicator" id="targetTimeIndicator">Target 05:00</span></div>
         <div class="coach-div"></div>
         <div class="filler-inline" id="fillerInline">
           <span style="font-size:10px;color:var(--muted);font-style:italic;">No fillers yet</span>
@@ -434,40 +504,43 @@
     </div>
     <div class="nemotron-debrief" id="nemotronDebrief">
       <div class="nemotron-header">Nemotron AI Debrief</div>
-      <div class="nemotron-grid">
-        <div class="nemotron-item">
-          <div class="nemotron-item-header">
-            <span class="nemotron-item-label">Content Clarity</span>
-            <span class="nemotron-item-score" id="clarityScore">—</span>
+      <div class="nemotron-status" id="nemotronStatus" role="status" hidden></div>
+      <div id="nemotronContent">
+        <div class="nemotron-grid">
+          <div class="nemotron-item">
+            <div class="nemotron-item-header">
+              <span class="nemotron-item-label">Content Clarity</span>
+              <span class="nemotron-item-score" id="clarityScore">—</span>
+            </div>
+            <div class="nemotron-item-text" id="clarityFeedback">—</div>
           </div>
-          <div class="nemotron-item-text" id="clarityFeedback">—</div>
-        </div>
-        <div class="nemotron-item">
-          <div class="nemotron-item-header">
-            <span class="nemotron-item-label">Filler Patterns</span>
-            <span class="nemotron-item-score" id="fillerScore">—</span>
+          <div class="nemotron-item">
+            <div class="nemotron-item-header">
+              <span class="nemotron-item-label">Filler Patterns</span>
+              <span class="nemotron-item-score" id="fillerScore">—</span>
+            </div>
+            <div class="nemotron-item-text" id="fillerFeedback">—</div>
           </div>
-          <div class="nemotron-item-text" id="fillerFeedback">—</div>
-        </div>
-        <div class="nemotron-item">
-          <div class="nemotron-item-header">
-            <span class="nemotron-item-label">Pacing</span>
-            <span class="nemotron-item-score" id="pacingScore">—</span>
+          <div class="nemotron-item">
+            <div class="nemotron-item-header">
+              <span class="nemotron-item-label">Pacing</span>
+              <span class="nemotron-item-score" id="pacingScore">—</span>
+            </div>
+            <div class="nemotron-item-text" id="pacingFeedback">—</div>
           </div>
-          <div class="nemotron-item-text" id="pacingFeedback">—</div>
-        </div>
-        <div class="nemotron-item">
-          <div class="nemotron-item-header">
-            <span class="nemotron-item-label">Confidence</span>
-            <span class="nemotron-item-score" id="confidenceScore">—</span>
+          <div class="nemotron-item">
+            <div class="nemotron-item-header">
+              <span class="nemotron-item-label">Confidence</span>
+              <span class="nemotron-item-score" id="confidenceScore">—</span>
+            </div>
+            <div class="nemotron-item-text" id="confidenceFeedback">—</div>
           </div>
-          <div class="nemotron-item-text" id="confidenceFeedback">—</div>
         </div>
-      </div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;" id="improvementText">—</div>
-      <div class="nemotron-fix">
-        <div class="nemotron-fix-label">🎯 One Thing To Fix This Session</div>
-        <div class="nemotron-fix-text" id="oneThingToFix">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:8px;" id="improvementText">—</div>
+        <div class="nemotron-fix">
+          <div class="nemotron-fix-label">🎯 One Thing To Fix This Session</div>
+          <div class="nemotron-fix-text" id="oneThingToFix">—</div>
+        </div>
       </div>
     </div>
 
@@ -523,6 +596,11 @@ let presentSentenceIdx = 0;
 let rehearsalHistory = [];
 let lastCoachingData = { wpm: 0, score: 0 };
 let scriptHash = '';
+let targetMinutes = 5;
+let scrollSpeed = 30;
+let autoScrollFrame = null;
+let autoScrollLastTimestamp = null;
+let presentationBriefRequest = 0;
 const userId = getUserId();
 
 const FILLERS = ['um','uh','like','you know','basically','literally','actually','right','kind of','sort of','i mean'];
@@ -554,6 +632,80 @@ function setFontSize(size) {
   document.getElementById('fontLabel').textContent = size + 'px';
   document.getElementById('fontSlider').value = size;
 }
+function initializeFeatureControls() {
+  const savedTarget = parseInt(localStorage.getItem('presentiq_target_minutes'), 10);
+  if (Number.isInteger(savedTarget) && savedTarget >= 1 && savedTarget <= 120) targetMinutes = savedTarget;
+  document.getElementById('targetMinutes').value = targetMinutes;
+
+  const savedSpeed = parseInt(localStorage.getItem('presentiq_scroll_speed'), 10);
+  setScrollSpeed(Number.isInteger(savedSpeed) && savedSpeed >= 1 && savedSpeed <= 3 ? savedSpeed : 2);
+  updateTargetTime();
+}
+function setTargetMinutes(value) {
+  const minutes = parseInt(value, 10);
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 120) {
+    document.getElementById('targetMinutes').value = targetMinutes;
+    return;
+  }
+  targetMinutes = minutes;
+  localStorage.setItem('presentiq_target_minutes', String(targetMinutes));
+  updateTargetTime();
+}
+function formatClock(seconds) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  return Math.floor(safeSeconds / 60).toString().padStart(2, '0') + ':' + (safeSeconds % 60).toString().padStart(2, '0');
+}
+function updateTargetTime() {
+  const targetSeconds = targetMinutes * 60;
+  const difference = targetSeconds - sessionDuration;
+  const status = difference >= 0 ? formatClock(difference) + ' left' : formatClock(-difference) + ' over';
+  document.getElementById('targetTimeIndicator').textContent = 'Target ' + formatClock(targetSeconds) + ' · ' + status;
+}
+function setScrollSpeed(value) {
+  const levels = { 1: { label: 'Slow', pixelsPerSecond: 16 }, 2: { label: 'Medium', pixelsPerSecond: 30 }, 3: { label: 'Fast', pixelsPerSecond: 48 } };
+  const level = levels[parseInt(value, 10)] || levels[2];
+  scrollSpeed = level.pixelsPerSecond;
+  document.getElementById('scrollSpeed').value = Object.keys(levels).find(key => levels[key] === level);
+  document.getElementById('scrollSpeedLabel').textContent = level.label;
+  localStorage.setItem('presentiq_scroll_speed', document.getElementById('scrollSpeed').value);
+}
+function updateScrollToggle() {
+  const toggle = document.getElementById('scrollToggle');
+  toggle.disabled = !isRunning || appMode !== 'rehearse';
+  toggle.textContent = !isRunning ? 'Auto-scroll starts with rehearsal' : autoScrollFrame === null ? '▶ Resume scroll' : 'Ⅱ Pause scroll';
+}
+function autoScrollTick(timestamp) {
+  if (!isRunning || appMode !== 'rehearse' || autoScrollFrame === null) return;
+  if (autoScrollLastTimestamp !== null) {
+    const elapsedSeconds = Math.min((timestamp - autoScrollLastTimestamp) / 1000, 0.1);
+    const scroll = document.getElementById('tpScroll');
+    const maxScroll = scroll.scrollHeight - scroll.clientHeight;
+    if (scroll.scrollTop >= maxScroll) {
+      pauseAutoScroll();
+      return;
+    }
+    scroll.scrollTop = Math.min(maxScroll, scroll.scrollTop + scrollSpeed * elapsedSeconds);
+  }
+  autoScrollLastTimestamp = timestamp;
+  autoScrollFrame = requestAnimationFrame(autoScrollTick);
+}
+function startAutoScroll() {
+  if (!isRunning || appMode !== 'rehearse' || autoScrollFrame !== null) return;
+  autoScrollLastTimestamp = null;
+  autoScrollFrame = requestAnimationFrame(autoScrollTick);
+  updateScrollToggle();
+}
+function pauseAutoScroll() {
+  if (autoScrollFrame !== null) cancelAnimationFrame(autoScrollFrame);
+  autoScrollFrame = null;
+  autoScrollLastTimestamp = null;
+  updateScrollToggle();
+}
+function toggleAutoScroll() {
+  if (!isRunning || appMode !== 'rehearse') return;
+  if (autoScrollFrame === null) startAutoScroll();
+  else pauseAutoScroll();
+}
 function updateTrainingBar(count) {
   const pct = Math.min((count/3)*100, 100);
   document.getElementById('trainingFill').style.width = pct + '%';
@@ -564,6 +716,11 @@ function updateTrainingBar(count) {
 // MODE SWITCHING
 // ═══════════════════════════════════════════
 function switchMode(mode) {
+  if (isRunning && mode !== appMode) {
+    alert('Stop the current session before switching modes.');
+    return;
+  }
+  if (mode === 'rehearse') presentationBriefRequest++;
   appMode = mode;
   document.getElementById('modeRehearse').className = 'mode-btn ' + (mode === 'rehearse' ? 'active rehearse' : 'rehearse');
   document.getElementById('modePresent').className = 'mode-btn ' + (mode === 'present' ? 'active present' : 'present');
@@ -574,6 +731,8 @@ function switchMode(mode) {
     tag.textContent = 'REHEARSE MODE'; tag.className = 'tp-mode-tag rehearse';
     document.getElementById('startBtn').className = 'hbtn hbtn-orange';
     document.getElementById('startBtn').textContent = '⏺ Rehearse';
+    document.getElementById('rehearseControls').style.display = 'flex';
+    document.getElementById('presentationBrief').hidden = true;
     nudges.forEach(b => b.classList.remove('visible'));
     document.getElementById('presentProgress').style.display = 'none';
     renderRehearsalScript();
@@ -581,9 +740,11 @@ function switchMode(mode) {
     tag.textContent = 'PRESENT MODE'; tag.className = 'tp-mode-tag present';
     document.getElementById('startBtn').className = 'hbtn hbtn-green';
     document.getElementById('startBtn').textContent = '▶ Present';
+    document.getElementById('rehearseControls').style.display = 'none';
     nudges.forEach(b => b.classList.add('visible'));
     document.getElementById('presentProgress').style.display = 'block';
     renderPresentScript();
+    loadPresentationBrief();
   }
 }
 
@@ -595,17 +756,289 @@ function loadScript() {
   if (!text) { alert('Please paste your script.'); return; }
   scriptText = text;
   scriptHash = simpleHash(text);
+  document.getElementById('scriptDoctorBtn').disabled = false;
+  document.getElementById('cuePhraseBtn').disabled = false;
+  document.getElementById('scriptDoctor').hidden = true;
+  document.getElementById('cuePhrasePanel').hidden = true;
   // Split into sentences
   const parts = text.match(/[^.!?]+[.!?]+/g) || text.split('\n').filter(l => l.trim());
   scriptSentences = parts.map(p => ({ text: p.trim(), element: null }));
   renderRehearsalScript();
   loadModelFromServer();
+  generateCuePhrasesForScript();
+  if (appMode === 'present') loadPresentationBrief();
 }
 
 function clearScript() {
   scriptText = ''; scriptSentences = []; scriptHash = '';
   document.getElementById('scriptArea').value = '';
+  document.getElementById('scriptDoctorBtn').disabled = true;
+  document.getElementById('cuePhraseBtn').disabled = true;
+  document.getElementById('scriptDoctor').hidden = true;
+  document.getElementById('cuePhrasePanel').hidden = true;
+  document.getElementById('presentationBrief').hidden = true;
+  presentationBriefRequest++;
   document.getElementById('scriptDisplay').innerHTML = '<div class="tp-empty"><div class="tp-empty-icon">📝</div><div class="tp-empty-text">Paste your script and click Load Script</div></div>';
+}
+
+function renderDoctorList(id, items, formatItem) {
+  const list = document.querySelector('#' + id + ' ul');
+  list.replaceChildren();
+  if (!items.length) {
+    const item = document.createElement('li');
+    item.textContent = 'No specific issues identified.';
+    list.appendChild(item);
+    return;
+  }
+  items.forEach(value => {
+    const item = document.createElement('li');
+    item.textContent = formatItem(value);
+    list.appendChild(item);
+  });
+}
+
+function renderScriptDoctor(analysis) {
+  renderDoctorList('doctorLongSentences', analysis.longSentences, item => item.sentence + (item.reason ? ' — ' + item.reason : ''));
+  renderDoctorList('doctorPronunciation', analysis.pronunciationChallenges, item => item.word + ': ' + item.tip);
+  renderDoctorList('doctorArguments', analysis.weakArguments, item => item.argument + ': ' + item.suggestion);
+  renderDoctorList('doctorAlternatives', analysis.simplerAlternatives, item => item.original + ' → ' + item.simpler);
+  renderDoctorList('doctorOutline', analysis.speakingOutline, item => item);
+  const estimateMinutes = analysis.estimatedSpeakingMinutes;
+  document.getElementById('doctorEstimate').textContent =
+    'Estimated speaking time: ' + estimateMinutes + (estimateMinutes === 1 ? ' minute' : ' minutes') +
+    ' · Target: ' + targetMinutes + (targetMinutes === 1 ? ' minute.' : ' minutes.');
+}
+
+async function callNemotronAction(action, payload) {
+  const response = await fetch(API_BASE + '/.netlify/functions/script-coach', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...payload })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Nemotron action failed.');
+  return data;
+}
+
+async function generateCuePhrasesForScript() {
+  if (!scriptText || scriptText.trim().length < 20) return [];
+  const button = document.getElementById('cuePhraseBtn');
+  const panel = document.getElementById('cuePhrasePanel');
+  const status = document.getElementById('cuePhraseStatus');
+  const list = document.getElementById('cuePhraseList');
+  if (button) button.disabled = true;
+  if (panel) panel.hidden = false;
+  if (status) status.textContent = 'Nemotron is turning your script into 3-6 word memory cues...';
+  if (list) list.replaceChildren();
+  try {
+    const data = await callNemotronAction('cue_phrases', { script: scriptText, targetMinutes });
+    const cuePhrases = Array.isArray(data.cuePhrases)
+      ? data.cuePhrases
+      : (data.cuePhrases && Array.isArray(data.cuePhrases.cuePhrases)
+        ? data.cuePhrases.cuePhrases
+        : (Array.isArray(data.cue_phrases) ? data.cue_phrases : []));
+    const clean = cuePhrases.filter(Boolean).map(p => String(p).trim()).filter(Boolean).slice(0, 8);
+    if (list) {
+      if (!clean.length) {
+        list.innerHTML = '<span style="font-size:10px;color:var(--muted);font-style:italic;">No cue phrases available.</span>';
+      } else {
+        clean.forEach(phrase => {
+          const tag = document.createElement('span');
+          tag.className = 'kw-tag';
+          tag.textContent = phrase;
+          list.appendChild(tag);
+        });
+      }
+    }
+    if (status) status.textContent = clean.length ? 'Cue phrases generated for your next rehearsal.' : 'Cue phrases are unavailable right now.';
+    return clean;
+  } catch (err) {
+    console.warn('Cue phrase generation failed:', err);
+    if (status) status.textContent = 'Cue phrases were unavailable: ' + err.message;
+    if (list) list.innerHTML = '<span style="font-size:10px;color:var(--muted);font-style:italic;">Cue phrase generation failed.</span>';
+    return [];
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function suggestSmartScrollSpeed() {
+  const fromLabel = document.getElementById('scrollSpeedLabel')?.textContent || 'Medium';
+  const liveWpm = Number(document.getElementById('wpmVal')?.textContent || 0);
+  const avgWpm = Number.isFinite(liveWpm) && liveWpm > 0 ? liveWpm : (lastCoachingData && Number(lastCoachingData.wpm) > 0 ? lastCoachingData.wpm : 0);
+  if (!Number.isFinite(avgWpm) || avgWpm <= 0) {
+    alert('Complete a rehearsal to get a smart scroll recommendation.');
+    return;
+  }
+  const result = await suggestScrollSpeedForRehearsal(avgWpm, fromLabel);
+  const levels = { slow: { value: 1, label: 'Slow', pixelsPerSecond: 16 }, medium: { value: 2, label: 'Medium', pixelsPerSecond: 30 }, fast: { value: 3, label: 'Fast', pixelsPerSecond: 48 } };
+  const recommended = levels[result.recommendedSpeed] || levels.medium;
+  setScrollSpeed(recommended.value);
+  const statusEl = document.getElementById('scrollSuggestionBtn');
+  if (statusEl) statusEl.title = result.reason;
+  document.getElementById('scrollToggle').title = result.reason;
+  const label = document.getElementById('scrollSpeedLabel');
+  if (label) {
+    label.textContent = recommended.label + ' · AI';
+    setTimeout(() => { label.textContent = recommended.label; }, 2200);
+  }
+}
+
+async function suggestScrollSpeedForRehearsal(avgWpm, currentSpeedLabel) {
+  if (!Number.isFinite(avgWpm) || avgWpm <= 0) return { recommendedSpeed: 'medium', suggestedWpm: 130, reason: 'Default medium pace used for the next rehearsal.' };
+  try {
+    const data = await callNemotronAction('scroll_suggestion', { avgWpm, currentSpeed: currentSpeedLabel, targetMinutes });
+    const suggestion = data.suggestion || data.scrollSuggestion || {};
+    return {
+      recommendedSpeed: suggestion.recommendedSpeed || 'medium',
+      suggestedWpm: Number(suggestion.suggestedWpm) || Math.round(avgWpm),
+      reason: suggestion.reason || 'Suggested based on your average rehearsal pace.'
+    };
+  } catch (err) {
+    console.warn('Scroll suggestion failed:', err);
+    return { recommendedSpeed: currentSpeedLabel || 'medium', suggestedWpm: Math.round(avgWpm), reason: 'Default pace retained because no AI suggestion was available.' };
+  }
+}
+
+async function runScriptDoctor() {
+  if (!scriptText) return;
+  const panel = document.getElementById('scriptDoctor');
+  const status = document.getElementById('scriptDoctorStatus');
+  const results = document.getElementById('scriptDoctorResults');
+  const button = document.getElementById('scriptDoctorBtn');
+  panel.hidden = false;
+  results.hidden = true;
+  status.textContent = 'Nemotron is reviewing your script...';
+  button.disabled = true;
+  try {
+    const response = await fetch(API_BASE + '/.netlify/functions/script-coach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'script-doctor', script: scriptText, targetMinutes })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Script review failed.');
+    const analysis = data.analysis;
+    if (!analysis || !Array.isArray(analysis.longSentences) ||
+        !Array.isArray(analysis.pronunciationChallenges) ||
+        !Array.isArray(analysis.weakArguments) ||
+        !Array.isArray(analysis.simplerAlternatives) ||
+        !Array.isArray(analysis.speakingOutline) ||
+        !analysis.longSentences.every(item => item && typeof item.sentence === 'string' && typeof item.reason === 'string') ||
+        !analysis.pronunciationChallenges.every(item => item && typeof item.word === 'string' && typeof item.tip === 'string') ||
+        !analysis.weakArguments.every(item => item && typeof item.argument === 'string' && typeof item.suggestion === 'string') ||
+        !analysis.simplerAlternatives.every(item => item && typeof item.original === 'string' && typeof item.simpler === 'string') ||
+        !analysis.speakingOutline.every(item => typeof item === 'string') ||
+        !Number.isFinite(analysis.estimatedSpeakingMinutes)) {
+      throw new Error('Nemotron returned an incomplete script review.');
+    }
+    renderScriptDoctor(analysis);
+    results.hidden = false;
+    status.textContent = 'Review complete. Your original script remains unchanged.';
+  } catch (err) {
+    console.error('Script Doctor error:', err);
+    status.textContent = 'Script review failed: ' + err.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function latestDebriefStorageKey() {
+  return 'presentiq_last_debrief_' + scriptHash;
+}
+function briefingStorageKey() {
+  return 'presentiq_presentation_brief_' + scriptHash;
+}
+function readStoredObject(key) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : null;
+  } catch (err) {
+    console.warn('Could not read saved coaching data:', err);
+    return null;
+  }
+}
+function showPresentationBriefStatus(message) {
+  document.getElementById('presentationBriefStatus').textContent = message;
+  document.getElementById('presentationBriefList').hidden = true;
+}
+function renderPresentationBrief(bullets, status) {
+  const list = document.getElementById('presentationBriefList');
+  list.replaceChildren();
+  bullets.forEach(bullet => {
+    const item = document.createElement('li');
+    item.textContent = bullet;
+    list.appendChild(item);
+  });
+  document.getElementById('presentationBriefStatus').textContent = status || '';
+  list.hidden = false;
+}
+async function loadPresentationBrief() {
+  const requestId = ++presentationBriefRequest;
+  const panel = document.getElementById('presentationBrief');
+  panel.hidden = false;
+  if (!scriptText || !scriptHash) {
+    showPresentationBriefStatus('Load a script before opening your presentation brief.');
+    return;
+  }
+
+  const latestDebrief = readStoredObject(latestDebriefStorageKey());
+  const sessionNumber = Math.max(
+    rehearsalHistory.length,
+    Number(latestDebrief && latestDebrief.sessionNumber) || 0
+  );
+  if (!sessionNumber) {
+    showPresentationBriefStatus('Complete a rehearsal first to generate a brief grounded in your coaching feedback.');
+    return;
+  }
+
+  const cached = readStoredObject(briefingStorageKey());
+  if (cached && cached.sessionNumber === sessionNumber && Array.isArray(cached.bullets) && cached.bullets.length === 3) {
+    renderPresentationBrief(cached.bullets, 'Based on your rehearsal feedback.');
+    return;
+  }
+
+  showPresentationBriefStatus('Nemotron is preparing three reminders from your rehearsal...');
+  try {
+    const recentSessions = rehearsalHistory.slice(0, 5).map((session, index) => ({
+      sessionNumber: session.session_number || (rehearsalHistory.length - index),
+      score: session.score,
+      wpm: session.wpm,
+      fillerCount: session.filler_count,
+      duration: session.duration_seconds
+    }));
+    const coachingFeedback = latestDebrief ? {
+      oneThingToFix: latestDebrief.oneThingToFix || '',
+      pacing: latestDebrief.pacing || '',
+      fillers: latestDebrief.fillers || '',
+      confidence: latestDebrief.confidence || ''
+    } : {};
+    const response = await fetch(API_BASE + '/.netlify/functions/script-coach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'presentation-brief',
+        script: scriptText,
+        recentSessions,
+        coachingFeedback
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Presentation briefing failed.');
+    const bullets = data.briefing && data.briefing.bullets;
+    if (!Array.isArray(bullets) || bullets.length !== 3 ||
+        bullets.some(bullet => typeof bullet !== 'string' || !bullet.trim())) {
+      throw new Error('Nemotron returned an incomplete presentation brief.');
+    }
+    if (requestId !== presentationBriefRequest || appMode !== 'present') return;
+    localStorage.setItem(briefingStorageKey(), JSON.stringify({ sessionNumber, bullets }));
+    renderPresentationBrief(bullets, 'Based on your rehearsal feedback.');
+  } catch (err) {
+    console.error('Presentation briefing error:', err);
+    if (requestId === presentationBriefRequest && appMode === 'present') {
+      showPresentationBriefStatus('Brief unavailable: ' + err.message);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1061,9 +1494,10 @@ async function saveRehearsalToBackend(duration, wpm, fillers, score, sentenceTim
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, scriptHash, duration, wpm, fillerCount: fillers, score, sentenceTimings })
     });
-    if (!r.ok) throw new Error('Save failed');
-    return await r.json();
-  } catch(err) { console.error('Save error:', err); return null; }
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Save failed with status ' + r.status);
+    return data;
+  } catch(err) { console.error('Save error:', err); return { error: err.message }; }
 }
 
 async function loadModelFromServer() {
@@ -1090,6 +1524,7 @@ async function loadModelFromServer() {
       renderHistory();
       updateTrainingBar(data.sessions.length);
     }
+    if (appMode === 'present') loadPresentationBrief();
   } catch(err) { console.warn('Load model error:', err); }
 }
 
@@ -1165,7 +1600,12 @@ function exportHistory() {
 function clearHistory() {
   if (!confirm('Clear all rehearsal history? This resets your training.')) return;
   rehearsalHistory = []; presentModel = null;
+  if (scriptHash) {
+    localStorage.removeItem(latestDebriefStorageKey());
+    localStorage.removeItem(briefingStorageKey());
+  }
   renderHistory(); updateTrainingBar(0);
+  if (appMode === 'present') loadPresentationBrief();
 }
 
 // ═══════════════════════════════════════════
@@ -1173,10 +1613,12 @@ function clearHistory() {
 // ═══════════════════════════════════════════
 function startTimer() {
   sessionDuration = 0;
+  updateTargetTime();
   sessionTimerInterval = setInterval(() => {
     sessionDuration++;
     const m = Math.floor(sessionDuration/60), s = sessionDuration%60;
     document.getElementById('sessionTimer').textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+    updateTargetTime();
   }, 1000);
 }
 function stopTimer() { if (sessionTimerInterval) { clearInterval(sessionTimerInterval); sessionTimerInterval = null; } }
@@ -1194,6 +1636,7 @@ async function startSession() {
   finalTranscript = ''; lastTriggeredPhrase = '';
 
   if (appMode === 'rehearse') {
+    document.getElementById('tpScroll').scrollTop = 0;
     await startAudioRecording();
   } else {
     startPresentMode();
@@ -1237,6 +1680,7 @@ async function startSession() {
   recognition.start();
   isRunning = true;
   startTimer();
+  if (appMode === 'rehearse') startAutoScroll();
 
   document.getElementById('startBtn').style.display = 'none';
   document.getElementById('stopBtn').style.display = 'inline-block';
@@ -1245,6 +1689,7 @@ async function startSession() {
 
 async function stopSession() {
   isRunning = false;
+  pauseAutoScroll();
   if (recognition) { recognition.stop(); recognition = null; }
   if (appMode === 'present') stopPresentMode();
   stopTimer();
@@ -1274,7 +1719,7 @@ async function stopSession() {
       document.getElementById('trainingStatus').classList.remove('visible');
       setLive('', 'IDLE');
 
-      if (result) {
+      if (result && !result.error) {
         if (result.model) {
           presentModel = result.model;
           const schedule = result.model.sentence_schedule || [];
@@ -1286,26 +1731,53 @@ async function stopSession() {
         }
         updateTrainingBar(result.sessionNumber || 1);
         loadModelFromServer();
+      } else {
+        document.getElementById('overlayInsight').textContent =
+          'Rehearsal was not saved: ' + ((result && result.error) || 'Unknown save error. Check your Supabase configuration and function logs.');
       }
 
       // ── NEMOTRON DEBRIEF ────────────────────────────
       // Analyse transcript with Nemotron on Nebius Token Factory
-      if (transcription && transcription.transcript && finalTranscript) {
+      const spokenText = (transcription && typeof transcription.transcript === 'string' && transcription.transcript.trim()) || finalTranscript;
+      if (spokenText && spokenText.trim().length >= 20) {
         document.getElementById('nemotronProcessing').classList.add('show');
         const prevScore = rehearsalHistory.length > 0 ? rehearsalHistory[0].score : null;
-        const debriefResult = await analyseWithNemotron(
-          transcription.transcript || finalTranscript,
-          scriptText,
-          wpm,
-          fillerCount,
-          fillerWords,
-          score,
-          sessionDuration,
-          (rehearsalHistory.length + 1),
-          prevScore
-        );
+        const sessionNumber = (result && result.sessionNumber) || (rehearsalHistory.length + 1);
+        let debriefResult = null;
+        let debriefError = '';
+        try {
+          debriefResult = await analyseWithNemotron(
+            spokenText,
+            scriptText,
+            wpm,
+            fillerCount,
+            fillerWords,
+            score,
+            sessionDuration,
+            sessionNumber,
+            prevScore
+          );
+        } catch (err) {
+          debriefError = err.message;
+        }
         document.getElementById('nemotronProcessing').classList.remove('show');
-        if (debriefResult) renderNemotronDebrief(debriefResult);
+        if (debriefResult) {
+          localStorage.setItem(latestDebriefStorageKey(), JSON.stringify({
+            sessionNumber,
+            oneThingToFix: debriefResult.oneThingToFix || '',
+            pacing: debriefResult.pacingIntelligence && debriefResult.pacingIntelligence.feedback || '',
+            fillers: debriefResult.fillerPatterns && debriefResult.fillerPatterns.feedback || '',
+            confidence: debriefResult.confidenceLanguage && debriefResult.confidenceLanguage.feedback || ''
+          }));
+          renderNemotronDebrief(debriefResult);
+        } else {
+          renderNemotronFallback('Nemotron feedback could not be generated: ' +
+            (debriefError || 'The analysis endpoint returned no feedback.') +
+            (result && result.error ? ' Rehearsal save also failed: ' + result.error : ''));
+        }
+      } else {
+        renderNemotronFallback('A transcript was unavailable or too short to generate Nemotron feedback.' +
+          (result && result.error ? ' Rehearsal save also failed: ' + result.error : ''));
       }
     }
   }
@@ -1316,6 +1788,7 @@ function resetSession() {
   wordCount = 0; fillerCount = 0; fillerWords = {};
   finalTranscript = ''; sessionDuration = 0; lastTriggeredPhrase = '';
   document.getElementById('sessionTimer').textContent = '00:00';
+  updateTargetTime();
   document.getElementById('transcriptText').innerHTML = '<span class="interim">Press Begin to start...</span>';
   ['wpmVal','paceVal','scoreVal'].forEach(id => { document.getElementById(id).textContent = '—'; document.getElementById(id).className = 'coach-val neutral'; });
   document.getElementById('fillerVal').textContent = '0'; document.getElementById('fillerVal').className = 'coach-val neutral';
@@ -1382,17 +1855,21 @@ async function analyseWithNemotron(transcript, script, wpm, fillerCount, fillerW
         previousScore
       })
     });
-    if (!response.ok) throw new Error('Nemotron analysis failed: ' + response.status);
     const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Nemotron analysis failed with status ' + response.status);
+    if (!data.analysis) throw new Error('Nemotron returned an empty analysis.');
     return data.analysis;
   } catch(err) {
     console.error('Nemotron error:', err);
-    return null;
+    throw err;
   }
 }
 
 function renderNemotronDebrief(analysis) {
   if (!analysis) return;
+
+  document.getElementById('nemotronStatus').hidden = true;
+  document.getElementById('nemotronContent').hidden = false;
 
   function scoreClass(s) { return s >= 80 ? 'high' : s >= 60 ? 'mid' : 'low'; }
 
@@ -1438,6 +1915,14 @@ function renderNemotronDebrief(analysis) {
   document.getElementById('nemotronDebrief').classList.add('show');
 }
 
+function renderNemotronFallback(message) {
+  document.getElementById('nemotronContent').hidden = true;
+  const status = document.getElementById('nemotronStatus');
+  status.textContent = message;
+  status.hidden = false;
+  document.getElementById('nemotronDebrief').classList.add('show');
+}
+
 function closeOverlay() {
   document.getElementById('sessionOverlay').classList.remove('show');
   // Reset Nemotron debrief for next session
@@ -1445,6 +1930,7 @@ function closeOverlay() {
   document.getElementById('nemotronProcessing').classList.remove('show');
 }
 function switchToPresent() { closeOverlay(); switchMode('present'); }
+initializeFeatureControls();
 </script>
 </body>
 </html>
