@@ -7,7 +7,7 @@ Timing data saved to Supabase builds your personal presentation model.
 
 ---
 
-## Step 1 — Supabase Setup
+## Step 1 — Supabase Setup 
 1. Go to supabase.com → New project → name it "presentiq"
 2. SQL Editor → paste supabase-setup.sql → Run
 3. Settings → API → copy Project URL and anon public key
