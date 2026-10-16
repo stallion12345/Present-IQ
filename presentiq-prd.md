@@ -56,7 +56,7 @@ C:\Users\INEWTON\Desktop\present-iq\Present-IQ\
 | Service | Purpose | URL |
 |---------|---------|-----|
 | Netlify | Frontend + serverless functions | https://present-iq.netlify.app |
-| Supabase | Database (rehearsal sessions, timing models) | lgywgtqcpgbcikhwofke.supabase.co |
+| Supabase | Database (rehearsal sessions, timing models) | `<your-project-ref>.supabase.co` |
 | Groq | Whisper audio transcription | api.groq.com |
 | Nebius Token Factory | Nemotron AI debrief | api.studio.nebius.ai/v1 |
 | GitHub | Source control | github.com/stallion12345/present-iq |
@@ -65,7 +65,7 @@ C:\Users\INEWTON\Desktop\present-iq\Present-IQ\
 
 ```
 GROQ_API_KEY        = Groq API key (console.groq.com)
-SUPABASE_URL        = https://lgywgtqcpgbcikhwofke.supabase.co
+SUPABASE_URL        = https://<your-project-ref>.supabase.co
 SUPABASE_KEY        = Supabase anon public key
 NEBIUS_API_KEY      = Nebius Token Factory API key (tokenfactory.nebius.com)
 ```

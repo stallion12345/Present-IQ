@@ -15,13 +15,19 @@ Timing data saved to Supabase builds your personal presentation model.
 ---
 
 ## Step 2 — Deploy to Netlify
-Drag the presentiq-backend folder into netlify.com → Deploy manually
-OR connect via GitHub for easier updates.
+Connect the GitHub repository to Netlify, or deploy from this project directory with the Netlify CLI:
+
+```cmd
+npm install
+npx netlify-cli deploy --build --prod
+```
+
+Do not drag the project folder into Netlify's manual deploy area. Folder uploads can include the local `.env` file even though Git ignores it, exposing credentials; they also bypass the build and functions configuration in `netlify.toml`.
 
 ---
 
 ## Step 3 — Environment Variables
-Netlify → Site configuration → Environment variables → Add:
+Netlify → Site configuration → Environment variables → Add these values:
 
 GROQ_API_KEY     = your key from console.groq.com
 SUPABASE_URL     = your Supabase project URL
@@ -29,6 +35,8 @@ SUPABASE_KEY     = your Supabase anon public key
 NEBIUS_API_KEY   = your key from tokenfactory.nebius.com
 
 Save → Trigger redeploy
+
+Keep API keys in Netlify environment variables and in your local `.env` only. Never put them in `public/` or commit them to Git. If a key was included in a manual deploy, revoke/rotate it with its provider and redeploy without the `.env` file.
 
 ---
 
