@@ -149,6 +149,7 @@ Return only JSON in this exact shape:
         ],
         max_tokens: 1400,
         temperature: 0.3,
+        chat_template_kwargs: { enable_thinking: false },
         response_format: { type: 'json_object' }
       })
     });
@@ -160,9 +161,19 @@ Return only JSON in this exact shape:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const choice = data.choices?.[0];
+    const content = choice?.message?.content;
     if (!content) {
-      return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'No response from Nemotron.' }) };
+      const finishReason = choice?.finish_reason || 'unknown';
+      console.error('Nebius script coach returned no content:', {
+        finishReason,
+        usage: data.usage
+      });
+      return {
+        statusCode: 502,
+        headers: HEADERS,
+        body: JSON.stringify({ error: `Nemotron returned no final answer (finish reason: ${finishReason}).` })
+      };
     }
 
     let result;
