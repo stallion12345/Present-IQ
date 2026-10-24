@@ -1,29 +1,25 @@
 // netlify/functions/transcribe.js
 // Receives audio from frontend, sends to Groq Whisper, returns word timestamps
 
-const { createClient } = require('@supabase/supabase-js');
+const { aiLimitResponse, consumeAiUsage, corsHeaders } = require('../shared/usage-limits');
 
 exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
+      headers: corsHeaders(event),
       body: ''
     };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode: 405, headers: corsHeaders(event), body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_API_KEY) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Server not configured' }) };
+    return { statusCode: 500, headers: corsHeaders(event), body: JSON.stringify({ error: 'Server not configured' }) };
   }
 
   try {
@@ -33,8 +29,21 @@ exports.handler = async (event, context) => {
     const { audioBase64, mimeType, script, language } = body;
 
     if (!audioBase64) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'No audio provided' }) };
+      return { statusCode: 400, headers: corsHeaders(event), body: JSON.stringify({ error: 'No audio provided' }) };
     }
+    if (typeof audioBase64 !== 'string') {
+      return { statusCode: 400, headers: corsHeaders(event), body: JSON.stringify({ error: 'Invalid audio provided' }) };
+    }
+    if (audioBase64.length > 4500000) {
+      return {
+        statusCode: 413,
+        headers: corsHeaders(event, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ error: 'Audio is too large. Keep recordings under five minutes and try again.' })
+      };
+    }
+
+    const usage = await consumeAiUsage(event);
+    if (!usage.allowed) return aiLimitResponse(event, usage.unavailable);
 
     // Convert base64 to buffer
     const audioBuffer = Buffer.from(audioBase64, 'base64');
@@ -64,11 +73,10 @@ exports.handler = async (event, context) => {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      console.error('Groq error:', err);
+      console.error('Groq API error status:', response.status);
       return {
         statusCode: response.status,
-        headers: { 'Access-Control-Allow-Origin': '*' },
+        headers: corsHeaders(event, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ error: `Groq API error: ${response.status}` })
       };
     }
@@ -84,10 +92,9 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
+      headers: corsHeaders(event, {
         'Content-Type': 'application/json'
-      },
+      }),
       body: JSON.stringify({
         transcript: transcription.text,
         wordTimestamps,
@@ -97,10 +104,10 @@ exports.handler = async (event, context) => {
     };
 
   } catch (err) {
-    console.error('Transcribe error:', err);
+    console.error('Transcribe error:', err.message);
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders(event, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ error: err.message || 'Transcription failed' })
     };
   }

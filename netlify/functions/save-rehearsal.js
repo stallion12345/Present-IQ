@@ -3,29 +3,26 @@
 // Rebuilds the presentation model after each rehearsal
 
 const { createClient } = require('@supabase/supabase-js');
+const { corsHeaders } = require('../shared/usage-limits');
 
 exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
+      headers: corsHeaders(event),
       body: ''
     };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode: 405, headers: corsHeaders(event), body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Database not configured' }) };
+    return { statusCode: 500, headers: corsHeaders(event), body: JSON.stringify({ error: 'Database not configured' }) };
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -44,7 +41,7 @@ exports.handler = async (event, context) => {
     } = body;
 
     if (!userId || !scriptHash) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
+      return { statusCode: 400, headers: corsHeaders(event), body: JSON.stringify({ error: 'Missing required fields' }) };
     }
 
     // 1. Get current session count for this user+script
@@ -90,7 +87,7 @@ exports.handler = async (event, context) => {
         .from('sentence_timings')
         .insert(timingRows);
 
-      if (timingError) console.error('Timing save error:', timingError);
+      if (timingError) console.error('Timing save error:', timingError.message);
     }
 
     // 4. Rebuild presentation model from all sessions
@@ -98,10 +95,9 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
+      headers: corsHeaders(event, {
         'Content-Type': 'application/json'
-      },
+      }),
       body: JSON.stringify({
         sessionId: session.id,
         sessionNumber,
@@ -111,10 +107,10 @@ exports.handler = async (event, context) => {
     };
 
   } catch (err) {
-    console.error('Save rehearsal error:', err);
+    console.error('Save rehearsal error:', err.message);
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders(event, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ error: err.message || 'Failed to save rehearsal' })
     };
   }
@@ -177,7 +173,7 @@ async function buildPresentationModel(supabase, userId, scriptHash, totalSession
 
     return model;
   } catch (err) {
-    console.error('Model build error:', err);
+    console.error('Model build error:', err.message);
     return null;
   }
 }

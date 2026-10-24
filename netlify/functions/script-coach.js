@@ -1,25 +1,21 @@
 // Provides Nemotron script feedback and presentation-day briefings.
 
-const HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json'
-};
+const { aiLimitResponse, consumeAiUsage, corsHeaders } = require('../shared/usage-limits');
 const NEBIUS_MODEL = 'nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B';
 
 exports.handler = async event => {
+  const headers = corsHeaders(event, { 'Content-Type': 'application/json' });
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: HEADERS, body: '' };
+    return { statusCode: 200, headers, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   const apiKey = (process.env.NEBIUS_API_KEY || '').trim();
   if (!apiKey) {
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'Nebius API key not configured' }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Nebius API key not configured' }) };
   }
 
   try {
@@ -33,10 +29,10 @@ exports.handler = async event => {
       const script = typeof body.script === 'string' ? body.script.trim() : '';
       const targetMinutes = Number(body.targetMinutes);
       if (script.length < 20 || script.length > 12000) {
-        return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Script must be between 20 and 12000 characters.' }) };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Script must be between 20 and 12000 characters.' }) };
       }
       if (!Number.isInteger(targetMinutes) || targetMinutes < 1 || targetMinutes > 120) {
-        return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Target time must be between 1 and 120 minutes.' }) };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Target time must be between 1 and 120 minutes.' }) };
       }
 
       prompt = `Act as a practical presentation script coach. Analyse the script for spoken delivery and a ${targetMinutes}-minute target. Be constructive and base all feedback on the supplied script. Do not invent facts, evidence, or claims.
@@ -78,7 +74,7 @@ List only actionable findings; use empty arrays when none apply. Keep the speaki
         : {};
 
       if (!script || (!recentSessions.length && !coachingFeedback.oneThingToFix)) {
-        return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Complete at least one rehearsal before generating a presentation brief.' }) };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Complete at least one rehearsal before generating a presentation brief.' }) };
       }
 
       prompt = `Create a concise, confidence-building, exactly three-bullet presentation-day briefing. Use the rehearsal metrics and coaching feedback below. Do not claim improvement, persistent weaknesses, or sentence-specific observations unless that information is explicitly present. If the rehearsal notes are limited, give honest general reminders grounded in the script. Each bullet must be actionable and short.
@@ -99,7 +95,7 @@ Return only JSON in this shape: {"bullets":["reminder 1","reminder 2","reminder 
     } else if (action === 'cue-phrases' || action === 'cue_phrases') {
       const script = typeof body.script === 'string' ? body.script.trim() : '';
       if (script.length < 20 || script.length > 20000) {
-        return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Script must be between 20 and 20000 characters for cue phrase generation.' }) };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Script must be between 20 and 20000 characters for cue phrase generation.' }) };
       }
       prompt = `You are helping a presenter compress a speech into memory cues. Read the script and identify the most important ideas. Create 4 to 8 cue phrases, each 3 to 6 words long, that are memorable, natural, and easy to recall. The phrases should cover the main moments and not be generic filler.
 
@@ -116,7 +112,7 @@ Return only JSON in this exact shape:
       const currentSpeed = body.currentSpeed || body.scrollSpeed || 'medium';
       const targetMinutes = Number(body.targetMinutes || 5);
       if (!Number.isFinite(avgWpm) || avgWpm <= 0) {
-        return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Average WPM is required for scroll suggestions.' }) };
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Average WPM is required for scroll suggestions.' }) };
       }
       prompt = `You are advising a presenter on scroll speed. Based on the average words per minute and the presentation target, suggest a better default scroll speed for their next rehearsal. Use the same general pace ranges: slow ~100 WPM, medium ~130 WPM, fast ~160 WPM.
 
@@ -129,8 +125,11 @@ Return only JSON in this exact shape:
 {"recommendedSpeed":"slow|medium|fast","suggestedWpm":130,"reason":"short explanation"}`;
       responseKey = 'suggestion';
     } else {
-      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Unsupported coaching action.' }) };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unsupported coaching action.' }) };
     }
+
+    const usage = await consumeAiUsage(event);
+    if (!usage.allowed) return aiLimitResponse(event, usage.unavailable);
 
     const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
       method: 'POST',
@@ -155,9 +154,8 @@ Return only JSON in this exact shape:
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Nebius script coach error:', errorText);
-      return { statusCode: response.status, headers: HEADERS, body: JSON.stringify({ error: `Nebius API error: ${response.status}` }) };
+      console.error('Nebius script coach error status:', response.status);
+      return { statusCode: response.status, headers, body: JSON.stringify({ error: `Nebius API error: ${response.status}` }) };
     }
 
     const data = await response.json();
@@ -165,13 +163,10 @@ Return only JSON in this exact shape:
     const content = choice?.message?.content;
     if (!content) {
       const finishReason = choice?.finish_reason || 'unknown';
-      console.error('Nebius script coach returned no content:', {
-        finishReason,
-        usage: data.usage
-      });
+      console.error('Nebius script coach returned no content.');
       return {
         statusCode: 502,
-        headers: HEADERS,
+        headers,
         body: JSON.stringify({ error: `Nemotron returned no final answer (finish reason: ${finishReason}).` })
       };
     }
@@ -180,17 +175,17 @@ Return only JSON in this exact shape:
     try {
       result = JSON.parse(content.replace(/```json|```/g, '').trim());
     } catch (error) {
-      console.error('Nemotron script coach JSON parse error:', error);
-      return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'Nemotron returned invalid JSON.' }) };
+      console.error('Nemotron script coach JSON parse error:', error.message);
+      return { statusCode: 502, headers, body: JSON.stringify({ error: 'Nemotron returned invalid JSON.' }) };
     }
 
     return {
       statusCode: 200,
-      headers: HEADERS,
+      headers,
       body: JSON.stringify({ [responseKey]: result, model: NEBIUS_MODEL })
     };
   } catch (error) {
-    console.error('Script coach error:', error);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: error.message || 'Nemotron coaching failed.' }) };
+    console.error('Script coach error:', error.message);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message || 'Nemotron coaching failed.' }) };
   }
 };

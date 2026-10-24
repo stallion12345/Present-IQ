@@ -133,6 +133,7 @@
   .presentation-brief-status,.presentation-brief-list{font-size:11px;color:var(--text);line-height:1.6;}
   .presentation-brief-list{padding-left:18px;margin:0;}
   .presentation-brief-list li{margin:3px 0;}
+   .present-timing-notice{position:relative;z-index:1;margin:8px 24px 4px;padding:8px 12px;color:var(--muted);font-size:11px;}
   .nudge-btns{display:flex;gap:4px;}
   .nudge-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;display:none;transition:all 0.15s;}
   .nudge-btn:active{background:var(--blue-glow);border-color:var(--blue);}
@@ -147,6 +148,7 @@
   .script-display.rehearse-mode{color:var(--text);font-size:24px;}
   .script-display.rehearse-mode p{margin-bottom:1.4em;padding-bottom:1.4em;border-bottom:1px solid var(--border);}
   .script-display.rehearse-mode p:last-child{border-bottom:none;}
+  .script-display.rehearse-mode p.weak-sentence{border-left:3px solid var(--yellow);padding-left:12px;background:rgba(245,158,11,0.08);}
 
   /* PRESENT MODE — auto-advancing sentences */
   .present-sentence{display:block;margin-bottom:1.6em;padding:8px 12px;border-radius:8px;transition:all 0.4s;font-size:24px;}
@@ -237,12 +239,16 @@
   .nemotron-item-score.mid{color:var(--yellow);}
   .nemotron-item-score.low{color:var(--red);}
   .nemotron-item-text{font-size:10px;color:var(--muted);line-height:1.5;}
+  .weak-sentence-list{margin:8px 0;padding-left:20px;font-size:10px;color:var(--text);line-height:1.5;}
+  .weak-sentence-list li{margin-bottom:5px;}
   .nemotron-status{font-size:10px;color:var(--muted);line-height:1.5;}
   .nemotron-fix{background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:6px;padding:10px;margin-top:8px;}
   .nemotron-fix-label{font-family:"DM Mono",monospace;font-size:8px;color:var(--purple);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;}
   .nemotron-fix-text{font-size:11px;color:var(--text);font-weight:600;line-height:1.4;}
   .nemotron-processing{font-family:"DM Mono",monospace;font-size:9px;color:var(--purple);display:none;align-items:center;gap:6px;justify-content:center;margin-bottom:10px;}
   .nemotron-processing.show{display:flex;}
+  .speech-support-notice{display:none;padding:9px 16px;background:rgba(245,158,11,0.12);color:var(--yellow);font-size:12px;text-align:center;}
+  .speech-support-notice:not([hidden]){display:block;}
   .session-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
   .session-btn{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;}
   .session-btn.primary{background:var(--orange);color:#fff;}
@@ -298,6 +304,8 @@
     </div>
   </header>
 
+  <div id="speechSupportNotice" class="speech-support-notice" role="status" aria-live="polite" hidden>Use desktop Chrome or Edge</div>
+
   <div class="training-bar">
     <span class="training-label">Training</span>
     <div class="training-track"><div class="training-fill" id="trainingFill" style="width:0%"></div></div>
@@ -322,6 +330,7 @@
             <button class="hbtn hbtn-ghost" style="flex:1;font-size:10px;" onclick="loadScript()">Load Script</button>
             <button class="hbtn hbtn-ghost" style="font-size:10px;" onclick="clearScript()">Clear</button>
           </div>
+          <button class="hbtn hbtn-ghost" style="width:100%;font-size:10px;margin-top:6px;" onclick="loadSampleScript()">Load sample</button>
           <div style="margin-top:10px;">
             <div class="s-label">Presentation Target</div>
             <div class="target-time-control">
@@ -400,10 +409,10 @@
           <div class="rehearse-controls" id="rehearseControls">
             <div class="scroll-speed-control">
               <span class="scroll-speed-label">Scroll</span>
-              <input type="range" class="scroll-speed-slider" id="scrollSpeed" min="1" max="3" step="1" value="2" oninput="setScrollSpeed(this.value)" aria-label="Rehearse auto-scroll speed" title="Choose slow, medium, or fast auto-scroll speed">
+              <input type="range" class="scroll-speed-slider" id="scrollSpeed" min="1" max="10" step="1" value="2" oninput="setScrollSpeed(this.value)" aria-label="Rehearse auto-scroll speed" title="Choose auto-scroll speed from 1 to 10">
               <span class="scroll-speed-value" id="scrollSpeedLabel">Medium</span>
             </div>
-            <button class="scroll-toggle" id="scrollSuggestionBtn" type="button" onclick="suggestSmartScrollSpeed()" title="Get an AI recommendation for your next scroll speed">AI pace</button>
+            <button class="scroll-toggle" id="scrollSuggestionBtn" type="button" onclick="suggestSmartScrollSpeed()" title="Calculate a scroll speed from your last measured pace">Use last pace</button>
             <button class="scroll-toggle" id="scrollToggle" type="button" onclick="toggleAutoScroll()" disabled>Auto-scroll starts with rehearsal</button>
           </div>
           <div class="nudge-btns" id="nudgeBtns">
@@ -416,9 +425,11 @@
 
       <div class="tp-scroll" id="tpScroll">
         <div class="tp-reading-line"></div>
+        <div id="rehearsalLimitNotice" role="status" aria-live="polite" hidden style="margin:8px 24px;padding:8px 12px;border-radius:6px;background:rgba(245,158,11,0.12);color:var(--yellow);font-size:11px;">Maximum rehearsal time reached. Your rehearsal has stopped.</div>
         <div class="present-progress" id="presentProgress" style="display:none">
           <div class="present-progress-fill" id="presentProgressFill"></div>
         </div>
+        <div class="present-timing-notice" id="presentTimingNotice" hidden role="status" aria-live="polite"></div>
         <section class="presentation-brief" id="presentationBrief" hidden aria-live="polite">
           <div class="presentation-brief-title">Nemotron Presentation Brief</div>
           <div class="presentation-brief-status" id="presentationBriefStatus" role="status"></div>
@@ -537,6 +548,8 @@
           </div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:8px;" id="improvementText">—</div>
+        <div class="nemotron-item-label">Sentences to practice next time</div>
+        <ol class="weak-sentence-list" id="weakSentencesList"></ol>
         <div class="nemotron-fix">
           <div class="nemotron-fix-label">🎯 One Thing To Fix This Session</div>
           <div class="nemotron-fix-text" id="oneThingToFix">—</div>
@@ -591,6 +604,7 @@ let activeStreamCard = null;
 
 // Present mode
 let presentModel = null;
+let presentSchedule = [];
 let presentScheduleTimers = [];
 let presentSentenceIdx = 0;
 let rehearsalHistory = [];
@@ -613,7 +627,7 @@ function getUserId() {
   if (!id) { id = 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2,9); localStorage.setItem('presentiq_uid', id); }
   return id;
 }
-function simpleHash(s) { let h=0; for(let i=0;i<Math.min(s.length,500);i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return 'sh_'+Math.abs(h).toString(36); }
+function simpleHash(s) { let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return 'sh_'+Math.abs(h).toString(36); }
 
 // ═══════════════════════════════════════════
 // UI HELPERS
@@ -638,7 +652,10 @@ function initializeFeatureControls() {
   document.getElementById('targetMinutes').value = targetMinutes;
 
   const savedSpeed = parseInt(localStorage.getItem('presentiq_scroll_speed'), 10);
-  setScrollSpeed(Number.isInteger(savedSpeed) && savedSpeed >= 1 && savedSpeed <= 3 ? savedSpeed : 2);
+  const savedLabel = localStorage.getItem('presentiq_scroll_speed_suggested') === 'true'
+    ? 'Suggested from your last pace'
+    : '';
+  setScrollSpeed(Number.isInteger(savedSpeed) && savedSpeed >= 1 && savedSpeed <= 10 ? savedSpeed : 2, savedLabel);
   updateTargetTime();
 }
 function setTargetMinutes(value) {
@@ -661,13 +678,15 @@ function updateTargetTime() {
   const status = difference >= 0 ? formatClock(difference) + ' left' : formatClock(-difference) + ' over';
   document.getElementById('targetTimeIndicator').textContent = 'Target ' + formatClock(targetSeconds) + ' · ' + status;
 }
-function setScrollSpeed(value) {
-  const levels = { 1: { label: 'Slow', pixelsPerSecond: 16 }, 2: { label: 'Medium', pixelsPerSecond: 30 }, 3: { label: 'Fast', pixelsPerSecond: 48 } };
-  const level = levels[parseInt(value, 10)] || levels[2];
-  scrollSpeed = level.pixelsPerSecond;
-  document.getElementById('scrollSpeed').value = Object.keys(levels).find(key => levels[key] === level);
-  document.getElementById('scrollSpeedLabel').textContent = level.label;
-  localStorage.setItem('presentiq_scroll_speed', document.getElementById('scrollSpeed').value);
+const SCROLL_PIXELS_PER_UNIT = 16;
+function setScrollSpeed(value, labelOverride = '') {
+  const units = Math.max(1, Math.min(10, Math.round(Number(value) || 2)));
+  scrollSpeed = units === 1 ? SCROLL_PIXELS_PER_UNIT : units === 2 ? 30 : units * SCROLL_PIXELS_PER_UNIT;
+  document.getElementById('scrollSpeed').value = units;
+  document.getElementById('scrollSpeedLabel').textContent =
+    labelOverride || (units <= 3 ? 'Slow' : units <= 6 ? 'Medium' : 'Fast');
+  localStorage.setItem('presentiq_scroll_speed', String(units));
+  localStorage.setItem('presentiq_scroll_speed_suggested', labelOverride ? 'true' : 'false');
 }
 function updateScrollToggle() {
   const toggle = document.getElementById('scrollToggle');
@@ -733,6 +752,7 @@ function switchMode(mode) {
     document.getElementById('startBtn').textContent = '⏺ Rehearse';
     document.getElementById('rehearseControls').style.display = 'flex';
     document.getElementById('presentationBrief').hidden = true;
+    document.getElementById('presentTimingNotice').hidden = true;
     nudges.forEach(b => b.classList.remove('visible'));
     document.getElementById('presentProgress').style.display = 'none';
     renderRehearsalScript();
@@ -751,11 +771,41 @@ function switchMode(mode) {
 // ═══════════════════════════════════════════
 // SCRIPT LOADING
 // ═══════════════════════════════════════════
-function loadScript() {
+const SAMPLE_SCRIPT = 'Welcome to PresentIQ, a tool for rehearsing your next presentation. Read your script aloud, and the app measures your pace while you speak. After each rehearsal, the timing model learns how long you spend on every sentence. You can add a reference document and connect key phrases to helpful notes. Nebius Token Factory reviews your rehearsal and returns specific coaching. Present mode then advances through your script using your personal timings. If this is your first rehearsal, estimated timing keeps the demo moving. Rehearse once, review the coaching, and press Present when you are ready.';
+const SAMPLE_REFERENCE_TEXT = 'PresentIQ measures speaking pace and filler words during a rehearsal. Its timing model learns sentence durations from Whisper word timestamps and improves as more sessions are saved. A reference document provides background notes that appear when a speaker says one of its phrase triggers. The Nebius Token Factory service generates a script review and a coaching debrief from rehearsal text. Present mode advances the script at the speaker’s measured pace, or uses estimated timing at 130 words per minute before a model exists.';
+
+function loadSampleScript() {
+  document.getElementById('scriptArea').value = SAMPLE_SCRIPT;
+  loadScript('sample');
+
+  docText = SAMPLE_REFERENCE_TEXT;
+  docSentences = docText.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 15);
+  phrases = ['timing model', 'Nebius Token Factory', 'reference document'].map(phrase => ({ phrase }));
+  buildPhraseIndex();
+  renderPhrases();
+
+  const uploadZone = document.getElementById('uploadZone');
+  uploadZone.classList.add('loaded');
+  document.getElementById('docFile').value = '';
+  document.getElementById('progWrap').style.display = 'none';
+  document.getElementById('uploadTitle').textContent = '✓ Sample reference';
+  document.getElementById('uploadSub').textContent = docSentences.length + ' sentences indexed';
+}
+
+function loadScript(hashOverride = '') {
   const text = document.getElementById('scriptArea').value.trim();
   if (!text) { alert('Please paste your script.'); return; }
+  const nextHash = hashOverride || simpleHash(text);
+  if (scriptHash !== nextHash) {
+    presentModel = null;
+    presentSchedule = [];
+    rehearsalHistory = [];
+    renderHistory();
+    updateTrainingBar(0);
+    document.getElementById('presentBtn').style.display = 'none';
+  }
   scriptText = text;
-  scriptHash = simpleHash(text);
+  scriptHash = nextHash;
   document.getElementById('scriptDoctorBtn').disabled = false;
   document.getElementById('cuePhraseBtn').disabled = false;
   document.getElementById('scriptDoctor').hidden = true;
@@ -853,7 +903,7 @@ async function generateCuePhrasesForScript() {
     if (status) status.textContent = clean.length ? 'Cue phrases generated for your next rehearsal.' : 'Cue phrases are unavailable right now.';
     return clean;
   } catch (err) {
-    console.warn('Cue phrase generation failed:', err);
+    console.warn('Cue phrase generation failed:', err.message);
     if (status) status.textContent = 'Cue phrases were unavailable: ' + err.message;
     if (list) list.innerHTML = '<span style="font-size:10px;color:var(--muted);font-style:italic;">Cue phrase generation failed.</span>';
     return [];
@@ -862,41 +912,29 @@ async function generateCuePhrasesForScript() {
   }
 }
 
-async function suggestSmartScrollSpeed() {
-  const fromLabel = document.getElementById('scrollSpeedLabel')?.textContent || 'Medium';
-  const liveWpm = Number(document.getElementById('wpmVal')?.textContent || 0);
-  const avgWpm = Number.isFinite(liveWpm) && liveWpm > 0 ? liveWpm : (lastCoachingData && Number(lastCoachingData.wpm) > 0 ? lastCoachingData.wpm : 0);
-  if (!Number.isFinite(avgWpm) || avgWpm <= 0) {
-    alert('Complete a rehearsal to get a smart scroll recommendation.');
-    return;
-  }
-  const result = await suggestScrollSpeedForRehearsal(avgWpm, fromLabel);
-  const levels = { slow: { value: 1, label: 'Slow', pixelsPerSecond: 16 }, medium: { value: 2, label: 'Medium', pixelsPerSecond: 30 }, fast: { value: 3, label: 'Fast', pixelsPerSecond: 48 } };
-  const recommended = levels[result.recommendedSpeed] || levels.medium;
-  setScrollSpeed(recommended.value);
-  const statusEl = document.getElementById('scrollSuggestionBtn');
-  if (statusEl) statusEl.title = result.reason;
-  document.getElementById('scrollToggle').title = result.reason;
-  const label = document.getElementById('scrollSpeedLabel');
-  if (label) {
-    label.textContent = recommended.label + ' · AI';
-    setTimeout(() => { label.textContent = recommended.label; }, 2200);
-  }
+function suggestedScrollUnits(wpm, scriptHeight, totalWords) {
+  if (!Number.isFinite(wpm) || wpm <= 0 || !Number.isFinite(scriptHeight) || scriptHeight <= 0 ||
+      !Number.isFinite(totalWords) || totalWords <= 0) return null;
+  const pixelsPerSecond = (wpm / 60) * (scriptHeight / totalWords);
+  return Math.max(1, Math.min(10, Math.round(pixelsPerSecond / SCROLL_PIXELS_PER_UNIT)));
 }
 
-async function suggestScrollSpeedForRehearsal(avgWpm, currentSpeedLabel) {
-  if (!Number.isFinite(avgWpm) || avgWpm <= 0) return { recommendedSpeed: 'medium', suggestedWpm: 130, reason: 'Default medium pace used for the next rehearsal.' };
-  try {
-    const data = await callNemotronAction('scroll_suggestion', { avgWpm, currentSpeed: currentSpeedLabel, targetMinutes });
-    const suggestion = data.suggestion || data.scrollSuggestion || {};
-    return {
-      recommendedSpeed: suggestion.recommendedSpeed || 'medium',
-      suggestedWpm: Number(suggestion.suggestedWpm) || Math.round(avgWpm),
-      reason: suggestion.reason || 'Suggested based on your average rehearsal pace.'
-    };
-  } catch (err) {
-    console.warn('Scroll suggestion failed:', err);
-    return { recommendedSpeed: currentSpeedLabel || 'medium', suggestedWpm: Math.round(avgWpm), reason: 'Default pace retained because no AI suggestion was available.' };
+function applySuggestedScrollSpeed(wpm) {
+  const scriptDisplay = document.getElementById('scriptDisplay');
+  const totalWords = scriptText.trim().split(/\s+/).filter(Boolean).length;
+  const units = suggestedScrollUnits(wpm, scriptDisplay.scrollHeight, totalWords);
+  if (units === null) return false;
+  setScrollSpeed(units, 'Suggested from your last pace');
+  const statusEl = document.getElementById('scrollSuggestionBtn');
+  if (statusEl) statusEl.title = 'Calculated from your measured speaking pace and script height';
+  return true;
+}
+
+function suggestSmartScrollSpeed() {
+  const liveWpm = Number(document.getElementById('wpmVal')?.textContent || 0);
+  const avgWpm = Number.isFinite(liveWpm) && liveWpm > 0 ? liveWpm : (lastCoachingData && Number(lastCoachingData.wpm) > 0 ? lastCoachingData.wpm : 0);
+  if (!applySuggestedScrollSpeed(avgWpm)) {
+    alert('Complete a rehearsal to get a scroll speed suggestion.');
   }
 }
 
@@ -936,7 +974,7 @@ async function runScriptDoctor() {
     results.hidden = false;
     status.textContent = 'Review complete. Your original script remains unchanged.';
   } catch (err) {
-    console.error('Script Doctor error:', err);
+    console.error('Script Doctor error:', err.message);
     status.textContent = 'Script review failed: ' + err.message;
   } finally {
     button.disabled = false;
@@ -954,7 +992,7 @@ function readStoredObject(key) {
     const value = localStorage.getItem(key);
     return value ? JSON.parse(value) : null;
   } catch (err) {
-    console.warn('Could not read saved coaching data:', err);
+    console.warn('Could not read saved coaching data:', err.message);
     return null;
   }
 }
@@ -1034,7 +1072,7 @@ async function loadPresentationBrief() {
     localStorage.setItem(briefingStorageKey(), JSON.stringify({ sessionNumber, bullets }));
     renderPresentationBrief(bullets, 'Based on your rehearsal feedback.');
   } catch (err) {
-    console.error('Presentation briefing error:', err);
+    console.error('Presentation briefing error:', err.message);
     if (requestId === presentationBriefRequest && appMode === 'present') {
       showPresentationBriefStatus('Brief unavailable: ' + err.message);
     }
@@ -1048,13 +1086,24 @@ function renderRehearsalScript() {
   if (!scriptSentences.length) return;
   const display = document.getElementById('scriptDisplay');
   const kwSet = new Set(phrases.map(p => p.phrase.toLowerCase()));
+  const priorDebrief = readStoredObject(latestDebriefStorageKey());
+  const weakByIndex = new Map(
+    (Array.isArray(priorDebrief && priorDebrief.weakSentences) ? priorDebrief.weakSentences : [])
+      .map(item => [item.index - 1, item.reason])
+  );
 
   display.innerHTML = '';
   display.className = 'script-display rehearse-mode';
   display.style.fontSize = currentFontSize + 'px';
 
-  scriptSentences.forEach(sentence => {
+  scriptSentences.forEach((sentence, index) => {
     const p = document.createElement('p');
+    const weakReason = weakByIndex.get(index);
+    if (weakReason) {
+      p.classList.add('weak-sentence');
+      p.title = 'Needs practice: ' + weakReason;
+      p.setAttribute('aria-label', sentence.text + ' Needs practice: ' + weakReason);
+    }
     // Highlight phrase triggers in the script
     let html = sentence.text;
     phrases.forEach(ph => {
@@ -1122,18 +1171,31 @@ function advancePresentSentence(idx) {
 // ═══════════════════════════════════════════
 function startPresentMode() {
   presentSentenceIdx = 0;
+  const trainedSchedule = presentModel && Array.isArray(presentModel.sentence_schedule)
+    ? presentModel.sentence_schedule
+    : [];
+  const hasTrainedSchedule = trainedSchedule.length > 0;
+  const trainedByIndex = new Map(trainedSchedule.map(item => [item.sentenceIdx, item]));
+  presentSchedule = scriptSentences.map((sentence, sentenceIdx) => {
+    const trained = trainedByIndex.get(sentenceIdx);
+    const words = sentence.text.match(/\b[\w'-]+\b/g) || [];
+    return {
+      sentenceIdx,
+      avgDuration: trained && Number.isFinite(trained.avgDuration) && trained.avgDuration > 0
+        ? trained.avgDuration
+        : Math.max(1, Math.round(words.length * 60000 / 130))
+    };
+  });
+  const timingNotice = document.getElementById('presentTimingNotice');
+  timingNotice.textContent = hasTrainedSchedule ? '' : 'Estimated timing - rehearse to personalise';
+  timingNotice.hidden = hasTrainedSchedule;
+  presentSchedule.forEach(item => {
+    scriptSentences[item.sentenceIdx].avgDuration = item.avgDuration;
+  });
   renderPresentScript();
 
-  if (!presentModel || !presentModel.sentence_schedule || !presentModel.sentence_schedule.length) {
-    // No model — advance manually only
-    advancePresentSentence(0);
-    return;
-  }
-
-  const schedule = presentModel.sentence_schedule;
   let cumulativeDelay = 300;
-
-  schedule.forEach(item => {
+  presentSchedule.forEach(item => {
     const t = setTimeout(() => {
       advancePresentSentence(item.sentenceIdx);
     }, cumulativeDelay);
@@ -1154,9 +1216,9 @@ function nudge(direction) {
   advancePresentSentence(newIdx);
 
   // Resume schedule from new position
-  if (presentModel && presentModel.sentence_schedule) {
-    const schedule = presentModel.sentence_schedule.filter(s => s.sentenceIdx > newIdx);
-    let cumulativeDelay = 0;
+  if (presentSchedule.length) {
+    let cumulativeDelay = presentSchedule.find(item => item.sentenceIdx === newIdx)?.avgDuration || 0;
+    const schedule = presentSchedule.filter(item => item.sentenceIdx > newIdx);
     schedule.forEach(item => {
       const t = setTimeout(() => advancePresentSentence(item.sentenceIdx), cumulativeDelay);
       presentScheduleTimers.push(t);
@@ -1164,6 +1226,20 @@ function nudge(direction) {
     });
   }
 }
+
+document.addEventListener('keydown', event => {
+  if (appMode !== 'present' || !scriptSentences.length) return;
+  const target = event.target;
+  if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    nudge(-1);
+  } else if (event.key === 'ArrowRight' || event.code === 'Space') {
+    event.preventDefault();
+    nudge(1);
+  }
+});
 
 // ═══════════════════════════════════════════
 // PHRASE REFERENCE SYSTEM
@@ -1404,13 +1480,15 @@ async function startAudioRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     const mimeType = getSupportedMimeType();
-    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    const recorderOptions = { audioBitsPerSecond: 32000 };
+    if (mimeType) recorderOptions.mimeType = mimeType;
+    mediaRecorder = new MediaRecorder(stream, recorderOptions);
     audioChunks = [];
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.start(1000);
     return true;
   } catch(err) {
-    console.warn('Audio recording failed:', err);
+    console.warn('Audio recording failed:', err.message);
     return false;
   }
 }
@@ -1453,36 +1531,98 @@ async function transcribeWithGroq(audioResult, script) {
     if (!response.ok) throw new Error('Transcription failed');
     return await response.json();
   } catch(err) {
-    console.error('Groq error:', err);
+    console.error('Groq error:', err.message);
     return null;
   }
 }
 
 function alignTimestampsToSentences(wordTimestamps) {
-  if (!wordTimestamps || !wordTimestamps.length) return [];
-  return scriptSentences.map((sentence, sIdx) => {
-    const words = sentence.text.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(w => w.length > 3);
-    const fingerprint = words.slice(0, 3);
-    let startMs = null, endMs = null;
-    for (let i = 0; i < wordTimestamps.length; i++) {
-      const ww = wordTimestamps[i].word.toLowerCase().replace(/[^a-z]/g,'');
-      if (fingerprint.some(fp => ww.includes(fp.slice(0,4)) || fp.includes(ww.slice(0,4)))) {
-        startMs = Math.round(wordTimestamps[i].start * 1000);
-        const nextS = scriptSentences[sIdx + 1];
-        if (nextS) {
-          const nw = nextS.text.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-          for (let j = i+1; j < wordTimestamps.length; j++) {
-            const jw = wordTimestamps[j].word.toLowerCase().replace(/[^a-z]/g,'');
-            if (nw.slice(0,2).some(n => jw.includes(n.slice(0,4)))) { endMs = Math.round(wordTimestamps[j].start * 1000); break; }
-          }
+  const timestamps = Array.isArray(wordTimestamps) ? wordTimestamps : [];
+  const normalize = word => String(word || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const aligned = [];
+  let pointer = 0;
+  let previousSentenceStart = 0;
+
+  scriptSentences.forEach((sentence, sentenceIndex) => {
+    const words = sentence.text.split(/\s+/).map(normalize).filter(Boolean);
+    let firstMatch = null;
+    const sentenceStartFloor = Math.max(pointer, previousSentenceStart);
+
+    words.forEach(word => {
+      let scan = Math.max(pointer, sentenceStartFloor);
+      while (scan < timestamps.length) {
+        const whisperWord = normalize(timestamps[scan] && timestamps[scan].word);
+        if (whisperWord && whisperWord === word) {
+          if (!firstMatch) firstMatch = { index: scan, timestamp: timestamps[scan] };
+          pointer = scan + 1;
+          break;
         }
-        if (!endMs) endMs = Math.round(wordTimestamps[wordTimestamps.length-1].end * 1000);
-        break;
+        scan++;
+      }
+    });
+
+    if (firstMatch) previousSentenceStart = firstMatch.index;
+    aligned.push({
+      sentenceIndex,
+      sentenceText: sentence.text,
+      wordCount: words.length,
+      matchedIndex: firstMatch ? firstMatch.index : null,
+      startTimeMs: firstMatch && Number.isFinite(firstMatch.timestamp.start)
+        ? Math.round(firstMatch.timestamp.start * 1000)
+        : null
+    });
+  });
+
+  const secondsPerWord = lastCoachingData.wpm > 0
+    ? 60 / lastCoachingData.wpm
+    : sessionDuration > 0 && wordCount > 0 ? sessionDuration / wordCount : 60 / 130;
+  const estimatedDuration = item => Math.max(1, Math.round(item.wordCount * secondsPerWord * 1000));
+  const finalWord = timestamps.slice().reverse().find(item => normalize(item && item.word));
+  const finalWordEndMs = finalWord && Number.isFinite(finalWord.end) ? Math.round(finalWord.end * 1000) : null;
+
+  for (let i = 0; i < aligned.length;) {
+    if (aligned[i].startTimeMs !== null) {
+      i++;
+      continue;
+    }
+    const blockStart = i;
+    while (i < aligned.length && aligned[i].startTimeMs === null) i++;
+    const nextStart = i < aligned.length ? aligned[i].startTimeMs : null;
+    if (blockStart === 0 && nextStart !== null) {
+      let startTimeMs = nextStart;
+      for (let j = i - 1; j >= blockStart; j--) {
+        startTimeMs = Math.max(0, startTimeMs - estimatedDuration(aligned[j]));
+        aligned[j].startTimeMs = startTimeMs;
+      }
+    } else if (blockStart === 0) {
+      let startTimeMs = 0;
+      for (let j = blockStart; j < i; j++) {
+        aligned[j].startTimeMs = startTimeMs;
+        startTimeMs += estimatedDuration(aligned[j]);
+      }
+    } else {
+      const previous = aligned[blockStart - 1];
+      let startTimeMs = previous.startTimeMs + estimatedDuration(previous);
+      for (let j = blockStart; j < i; j++) {
+        aligned[j].startTimeMs = startTimeMs;
+        startTimeMs += estimatedDuration(aligned[j]);
       }
     }
-    const durationMs = startMs !== null && endMs !== null ? endMs - startMs : null;
-    return { sentenceIndex: sIdx, sentenceText: sentence.text, startTimeMs: startMs, durationMs };
-  }).filter(st => st.durationMs !== null && st.durationMs > 0);
+  }
+
+  return aligned.map((item, index) => {
+    const next = aligned[index + 1];
+    const endTimeMs = next ? next.startTimeMs : finalWordEndMs;
+    const durationMs = item.matchedIndex !== null && endTimeMs !== null
+      ? Math.max(0, endTimeMs - item.startTimeMs)
+      : estimatedDuration(item);
+    return {
+      sentenceIndex: item.sentenceIndex,
+      sentenceText: item.sentenceText,
+      startTimeMs: item.startTimeMs,
+      durationMs
+    };
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -1497,7 +1637,7 @@ async function saveRehearsalToBackend(duration, wpm, fillers, score, sentenceTim
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Save failed with status ' + r.status);
     return data;
-  } catch(err) { console.error('Save error:', err); return { error: err.message }; }
+  } catch(err) { console.error('Save error:', err.message); return { error: err.message }; }
 }
 
 async function loadModelFromServer() {
@@ -1525,7 +1665,7 @@ async function loadModelFromServer() {
       updateTrainingBar(data.sessions.length);
     }
     if (appMode === 'present') loadPresentationBrief();
-  } catch(err) { console.warn('Load model error:', err); }
+  } catch(err) { console.warn('Load model error:', err.message); }
 }
 
 // ═══════════════════════════════════════════
@@ -1613,12 +1753,17 @@ function clearHistory() {
 // ═══════════════════════════════════════════
 function startTimer() {
   sessionDuration = 0;
+  document.getElementById('rehearsalLimitNotice').hidden = true;
   updateTargetTime();
   sessionTimerInterval = setInterval(() => {
     sessionDuration++;
     const m = Math.floor(sessionDuration/60), s = sessionDuration%60;
     document.getElementById('sessionTimer').textContent = m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
     updateTargetTime();
+    if (appMode === 'rehearse' && sessionDuration >= 300) {
+      document.getElementById('rehearsalLimitNotice').hidden = false;
+      stopSession();
+    }
   }, 1000);
 }
 function stopTimer() { if (sessionTimerInterval) { clearInterval(sessionTimerInterval); sessionTimerInterval = null; } }
@@ -1628,7 +1773,10 @@ function stopTimer() { if (sessionTimerInterval) { clearInterval(sessionTimerInt
 // ═══════════════════════════════════════════
 async function startSession() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { alert('Use Chrome or Edge.'); return; }
+  if (!SR) {
+    document.getElementById('speechSupportNotice').hidden = false;
+    return;
+  }
   if (!scriptSentences.length) { alert('Please load your script first.'); return; }
 
   sessionStart = Date.now();
@@ -1730,6 +1878,9 @@ async function stopSession() {
           });
         }
         updateTrainingBar(result.sessionNumber || 1);
+        if (result.sessionNumber >= 1) {
+          document.getElementById('presentBtn').style.display = 'inline-block';
+        }
         loadModelFromServer();
       } else {
         document.getElementById('overlayInsight').textContent =
@@ -1742,6 +1893,10 @@ async function stopSession() {
       if (spokenText && spokenText.trim().length >= 20) {
         document.getElementById('nemotronProcessing').classList.add('show');
         const prevScore = rehearsalHistory.length > 0 ? rehearsalHistory[0].score : null;
+        const priorDebrief = readStoredObject(latestDebriefStorageKey());
+        const previousWeakSentences = Array.isArray(priorDebrief && priorDebrief.weakSentences)
+          ? priorDebrief.weakSentences
+          : [];
         const sessionNumber = (result && result.sessionNumber) || (rehearsalHistory.length + 1);
         let debriefResult = null;
         let debriefError = '';
@@ -1755,7 +1910,8 @@ async function stopSession() {
             score,
             sessionDuration,
             sessionNumber,
-            prevScore
+            prevScore,
+            previousWeakSentences
           );
         } catch (err) {
           debriefError = err.message;
@@ -1767,13 +1923,19 @@ async function stopSession() {
             oneThingToFix: debriefResult.oneThingToFix || '',
             pacing: debriefResult.pacingIntelligence && debriefResult.pacingIntelligence.feedback || '',
             fillers: debriefResult.fillerPatterns && debriefResult.fillerPatterns.feedback || '',
-            confidence: debriefResult.confidenceLanguage && debriefResult.confidenceLanguage.feedback || ''
+            confidence: debriefResult.confidenceLanguage && debriefResult.confidenceLanguage.feedback || '',
+            weakSentences: Array.isArray(debriefResult.weakSentences) ? debriefResult.weakSentences : []
           }));
           renderNemotronDebrief(debriefResult);
+          if (appMode === 'rehearse') renderRehearsalScript();
+          applySuggestedScrollSpeed(wpm);
         } else {
-          renderNemotronFallback('Nemotron feedback could not be generated: ' +
-            (debriefError || 'The analysis endpoint returned no feedback.') +
-            (result && result.error ? ' Rehearsal save also failed: ' + result.error : ''));
+          const feedbackError = debriefError === 'AI feedback timed out, try again.'
+            ? debriefError
+            : 'Nemotron feedback could not be generated: ' +
+              (debriefError || 'The analysis endpoint returned no feedback.') +
+              (result && result.error ? ' Rehearsal save also failed: ' + result.error : '');
+          renderNemotronFallback(feedbackError);
         }
       } else {
         renderNemotronFallback('A transcript was unavailable or too short to generate Nemotron feedback.' +
@@ -1788,6 +1950,7 @@ function resetSession() {
   wordCount = 0; fillerCount = 0; fillerWords = {};
   finalTranscript = ''; sessionDuration = 0; lastTriggeredPhrase = '';
   document.getElementById('sessionTimer').textContent = '00:00';
+  document.getElementById('rehearsalLimitNotice').hidden = true;
   updateTargetTime();
   document.getElementById('transcriptText').innerHTML = '<span class="interim">Press Begin to start...</span>';
   ['wpmVal','paceVal','scoreVal'].forEach(id => { document.getElementById(id).textContent = '—'; document.getElementById(id).className = 'coach-val neutral'; });
@@ -1829,7 +1992,7 @@ function showSessionOverlay(duration, wpm, fillers, score) {
   document.getElementById('overlayInsight').innerHTML = insight;
 
   const pb = document.getElementById('presentBtn');
-  if (rehearsalHistory.length >= 2) { pb.style.display = 'inline-block'; }
+  if (rehearsalHistory.length >= 1) { pb.style.display = 'inline-block'; }
   else { pb.style.display = 'none'; }
 
   document.getElementById('sessionOverlay').classList.add('show');
@@ -1838,7 +2001,7 @@ function showSessionOverlay(duration, wpm, fillers, score) {
 // ═══════════════════════════════════════════
 // NEMOTRON ANALYSIS
 // ═══════════════════════════════════════════
-async function analyseWithNemotron(transcript, script, wpm, fillerCount, fillerWords, score, duration, sessionNumber, previousScore) {
+async function analyseWithNemotron(transcript, script, wpm, fillerCount, fillerWords, score, duration, sessionNumber, previousScore, previousWeakSentences) {
   try {
     const response = await fetch(API_BASE + '/.netlify/functions/analyse-transcript', {
       method: 'POST',
@@ -1852,7 +2015,8 @@ async function analyseWithNemotron(transcript, script, wpm, fillerCount, fillerW
         score,
         duration,
         sessionNumber,
-        previousScore
+        previousScore,
+        previousWeakSentences
       })
     });
     const data = await response.json();
@@ -1860,7 +2024,7 @@ async function analyseWithNemotron(transcript, script, wpm, fillerCount, fillerW
     if (!data.analysis) throw new Error('Nemotron returned an empty analysis.');
     return data.analysis;
   } catch(err) {
-    console.error('Nemotron error:', err);
+    console.error('Nemotron error:', err.message);
     throw err;
   }
 }
@@ -1906,6 +2070,14 @@ function renderNemotronDebrief(analysis) {
     document.getElementById('improvementText').textContent = analysis.improvement;
   }
 
+  const weakSentencesList = document.getElementById('weakSentencesList');
+  weakSentencesList.replaceChildren();
+  (Array.isArray(analysis.weakSentences) ? analysis.weakSentences : []).forEach(item => {
+    const entry = document.createElement('li');
+    entry.textContent = `Sentence ${item.index}: ${item.reason}`;
+    weakSentencesList.appendChild(entry);
+  });
+
   // One thing to fix
   if (analysis.oneThingToFix) {
     document.getElementById('oneThingToFix').textContent = analysis.oneThingToFix;
@@ -1931,6 +2103,8 @@ function closeOverlay() {
 }
 function switchToPresent() { closeOverlay(); switchMode('present'); }
 initializeFeatureControls();
+document.getElementById('speechSupportNotice').hidden =
+  !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 </script>
 </body>
 </html>

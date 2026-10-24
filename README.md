@@ -109,7 +109,7 @@ cd present-iq
 npm install
 ```
 
-1. Create a Supabase project, open the SQL editor, and run `supabase-setup.sql`.
+1. Create a Supabase project, open the SQL editor, and run `supabase-setup.sql` followed by `sql/usage-limits.sql`.
 2. Copy the Supabase project URL and anon key (Settings, then API).
 3. Create a Groq API key at console.groq.com.
 4. Create a Nebius Token Factory API key at tokenfactory.nebius.com/project/api-keys.
@@ -133,6 +133,15 @@ NEBIUS_API_KEY=
 5. Press Stop. Groq transcribes the audio, then Nemotron returns the debrief.
 6. Rehearse a few times. The training bar shows progress toward three sessions.
 7. Press Go Present. Read the day briefing, press Begin, and the script advances on your timing. Use the back and forward buttons if you drift.
+
+## Quick start (2 minutes)
+
+1. Open https://present-iq.netlify.app in desktop Chrome.
+2. In Setup, click **Load sample**.
+3. Click **Script Doctor** to review the sample script.
+4. Read the script aloud for 30–45 seconds.
+5. Click **Stop**, then read the rehearsal debrief.
+6. Click **Present** to try Present mode with your learned timing or an estimate.
 
 ## Data flow and privacy
 
