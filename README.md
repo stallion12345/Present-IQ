@@ -20,7 +20,7 @@ An earlier version tried to follow the speaker word by word using browser speech
 
 ## How Nemotron is used
 
-**Model:** `nvidia/Llama-3_1-Nemotron-Ultra-253B-v1`, served by Nebius Token Factory through its OpenAI-compatible chat completions API.
+**Model:** `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`, served by Nebius Token Factory through its OpenAI-compatible chat completions API.
 
 All calls go through one Netlify function, `netlify/functions/analyse-transcript.js`. It runs in three modes, each asking for a fixed JSON schema at temperature 0.3.
 
@@ -77,7 +77,7 @@ PresentIQ existed before August 26, 2026. The seven rehearsal sessions listed be
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Vanilla HTML, CSS and JavaScript in one file, no build step |
-| Coaching AI | `nvidia/Llama-3_1-Nemotron-Ultra-253B-v1` on Nebius Token Factory |
+| Coaching AI | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` on Nebius Token Factory |
 | Transcription | Groq Whisper (`whisper-large-v3`) with word timestamps |
 | Database | Supabase (PostgreSQL) |
 | Backend | Netlify serverless functions (Node.js) |

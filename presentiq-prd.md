@@ -413,7 +413,7 @@ exports.handler = async () => {
 const NEBIUS_BASE = 'https://api.studio.nebius.ai/v1/';
 
 // Model
-const MODEL = 'nvidia/Llama-3_1-Nemotron-Ultra-253B-v1';
+const MODEL = 'nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B';
 
 // Call
 const response = await fetch(NEBIUS_BASE + 'chat/completions', {
@@ -478,7 +478,7 @@ const response = await fetch(NEBIUS_BASE + 'chat/completions', {
 
 ### Technical Requirements
 - [ ] Runs on Nebius Token Factory ✅ (analyse-transcript.js uses Nebius API)
-- [ ] Uses NVIDIA open source model ✅ (nvidia/Llama-3_1-Nemotron-Ultra-253B-v1)
+- [ ] Uses NVIDIA open source model ✅ (nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B)
 - [ ] Multi-step autonomous workflow ✅ (6-step pipeline documented above)
 - [ ] Public GitHub repo with open source license ✅ (MIT)
 - [ ] Working demo URL ✅ (present-iq.netlify.app)
