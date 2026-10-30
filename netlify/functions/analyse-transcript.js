@@ -3,7 +3,7 @@
 // Returns personalised AI debrief with specific feedback
 
 const { aiLimitResponse, consumeAiUsage, corsHeaders } = require('../shared/usage-limits');
-const NEBIUS_MODEL = 'nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B';
+const NEBIUS_MODEL = 'nvidia/Llama-3_1-Nemotron-Ultra-253B-v1';
 
 function validateWeakSentences(weakSentences, sentenceCount) {
   if (!Array.isArray(weakSentences)) return [];
