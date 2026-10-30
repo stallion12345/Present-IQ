@@ -1,7 +1,7 @@
 // Provides Nemotron script feedback and presentation-day briefings.
 
 const { aiLimitResponse, consumeAiUsage, corsHeaders } = require('../shared/usage-limits');
-const NEBIUS_MODEL = 'nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B';
+const NEBIUS_MODEL = 'nvidia/Llama-3_1-Nemotron-Ultra-253B-v1';
 
 exports.handler = async event => {
   const headers = corsHeaders(event, { 'Content-Type': 'application/json' });
